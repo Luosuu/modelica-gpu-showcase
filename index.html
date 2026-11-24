@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modelica-to-GPU via meshswarm &amp; meshevolve — Interactive Research Showcase</title>
+  <meta name="color-scheme" content="light dark">
+  <script>
+    try {
+      document.querySelector('meta[name="color-scheme"]').content =
+        localStorage.getItem("color-scheme") ?? "light dark";
+    } catch (_) {}
+  </script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="#top" class="brand">
+        <span class="brand-mark" aria-hidden="true">M→G</span>
+        <span>Modelica → GPU · meshswarm</span>
+      </a>
+      <nav class="nav-links" aria-label="Page sections">
+        <a href="#background">Background</a>
+        <a href="#rumoca">Rumoca &amp; GPU</a>
+        <a href="#evolution">Phase 3</a>
+        <a href="#control">Phase 4 RL</a>
+        <a href="#codesign">Co-Design</a>
+        <a href="#roadmap">Roadmap</a>
+      </nav>
+      <div class="header-actions">
+        <button type="button" id="present-toggle" class="icon-btn" aria-pressed="false" title="Toggle slide-by-slide presentation mode (Arrow keys)">
+          <span aria-hidden="true">▤</span> Present
+        </button>
+        <button type="button" id="theme-toggle" class="icon-btn theme-toggle">
+          <span class="icon-to-dark"><span aria-hidden="true">☾</span><span class="sr-only">Switch to dark theme</span> Dark</span>
+          <span class="icon-to-light"><span aria-hidden="true">☀</span><span class="sr-only">Switch to light theme</span> Light</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ==================== HERO ==================== -->
+    <section class="section hero" data-slide="Overview">
+      <div class="hero-pills">
+        <span class="pill pill-green">Phases 0–4 Verified · UVA Rivanna GPUs</span>
+        <span class="pill pill-blue">ORNL TRANSFORM · Fusion Fuel Cycle</span>
+        <span class="pill pill-plasma">$9.69 Total Swarm LLM Cost</span>
+      </div>
+      <h1>Migrating &amp; Optimizing Industrial Modelica Models for GPUs with <code>meshswarm</code> &amp; <code>meshevolve</code></h1>
+      <p class="lead">
+        Legacy fusion thermal-hydraulics and chemical process models are written in <strong>Modelica</strong> and run one trajectory at a time on CPUs without gradients. We combine deterministic compilers (<strong>OpenModelica</strong> &amp; <strong>Rumoca</strong>) with verification-gated multi-agent swarms to produce differentiable <strong>JAX/GPU</strong> operators—unlocking <strong>165× faster solves</strong>, <strong>1,024,000-episode GPU RL in 6.75 s</strong>, <strong>&lt; 18 µs</strong> edge controllers, and coupled whole-plant co-design.
+      </p>
+
+      <div class="kpi-grid">
+        <div class="kpi-card" style="--card-accent: var(--accent);">
+          <div class="kpi-val">165×</div>
+          <div class="kpi-title">ORNL TRANSFORM HX Speedup</div>
+          <div class="kpi-sub"><strong>7.8 ms</strong> / 1,000 runs + <strong>17.5 ms</strong> 64-grad (<code>25.3 ms</code> combined vs. <code>4.18 s</code> hand-written JAX ref, <code>10.0/10</code>).</div>
+        </div>
+        <div class="kpi-card" style="--card-accent: var(--emerald);">
+          <div class="kpi-val">151,690 ep/s</div>
+          <div class="kpi-title">Closed-Loop GPU RL (~39,000× CPU)</div>
+          <div class="kpi-sub"><strong>1,024,000</strong> 30-second fusion plant episodes in <strong>6.75 s</strong> on 1× A100; Differentiable SHAC achieves <strong>20× sample efficiency</strong>.</div>
+        </div>
+        <div class="kpi-card" style="--card-accent: var(--amber);">
+          <div class="kpi-val">17.47 µs</div>
+          <div class="kpi-title">p99.9 Deterministic CPU MLP</div>
+          <div class="kpi-sub">Distilled <strong>483-param</strong> standalone NumPy controller (<code>57.2×</code> under <code>1 ms</code> PLC ceiling, <code>2.2e-16</code> parity).</div>
+        </div>
+        <div class="kpi-card" style="--card-accent: var(--plasma);">
+          <div class="kpi-val">172.7 MWe</div>
+          <div class="kpi-title">Feasible 3-Solver Co-Design</div>
+          <div class="kpi-sub">Resolved <strong>82.3 K</strong> PbLi violation in <strong>59 evals</strong> (<code>Q = 74.54</code>, <code>99.979% T₂</code>); gradient-free Nelder–Mead stayed infeasible.</div>
+        </div>
+      </div>
+
+      <details class="primer-details">
+        <summary>Quick Primer: Key Modeling &amp; Fusion Terms (No Physics Background Needed)</summary>
+        <div class="glossary-grid">
+          <div class="glossary-item">
+            <strong>Modelica (.mo) &amp; ORNL TRANSFORM</strong>
+            A standard equation-based language engineers use to wire virtual power plants (pipes, valves, heat exchangers). <strong>TRANSFORM</strong> is Oak Ridge National Laboratory's open-source library for nuclear &amp; fusion thermal systems.
+          </div>
+          <div class="glossary-item">
+            <strong>Stiff DAE (Differential-Algebraic System)</strong>
+            A model mixing ultra-fast reactions (microseconds) with slow thermal drift (minutes) plus algebraic constraints (e.g., pressure balances) that must hold at every instant.
+          </div>
+          <div class="glossary-item">
+            <strong>PbLi &amp; FLiBe Coolants</strong>
+            <strong>PbLi</strong> (liquid lead-lithium metal) absorbs fusion heat and breeds tritium fuel inside the blanket. <strong>FLiBe</strong> (molten salt) carries heat from the heat exchanger to the electricity turbine.
+          </div>
+          <div class="glossary-item">
+            <strong>Differentiable Physics (Adjoints / <code>jax.grad</code>)</strong>
+            Running backpropagation through the entire physical simulation so optimizers get exact slopes (<em>"how does turbine power change if I tweak coolant flow?"</em>) in one backward pass instead of thousands of guesses.
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ==================== SECTION 1: BACKGROUND ==================== -->
+    <section class="section" id="background" data-slide="1. Fusion Background">
+      <div class="eyebrow">01 · Background &amp; Problem Framing</div>
+      <h2>Why Fusion Plant Digital Twins Need GPUs &amp; Exact Gradients</h2>
+      <p class="lead">
+        Designing a fusion pilot plant requires coordinating four tightly coupled physical subsystems—from a 400-million-°C plasma core down to a 24 K cryogenic distillation tower. Click any stage below to see what it does in plain terms, why legacy CPU Modelica bottlenecks it, and how our benchmark tiers capture it.
+      </p>
+
+      <div class="arch-stage" id="plant-arch-stage">
+        <div class="arch-toolbar">
+          <div>
+            <div class="eyebrow" style="margin:0;">Interactive Architecture · Click Any Subsystem</div>
+            <h3 style="margin:0.15rem 0 0; font-size:1rem;">Animated Fusion Pilot Plant &amp; Differentiable Signal Flow</h3>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="seg-btn" id="plant-mode-fwd" aria-pressed="true">Forward Physics Flow</button>
+            <button type="button" class="seg-btn" id="plant-mode-grad" aria-pressed="false">Backward Adjoint Gradients (jax.grad)</button>
+            <button type="button" class="icon-btn" id="plant-pause-btn">Pause</button>
+          </div>
+        </div>
+
+        <div class="svg-frame">
+          <svg id="plant-svg" viewBox="0 0 960 350" role="img" aria-label="Interactive animated fusion pilot plant architecture showing plasma core, PbLi blanket check valve, ORNL TRANSFORM heat exchanger, FLiBe power turbine, and 16-stage cryogenic tritium distillation tower">
+            <defs>
+              <radialGradient id="plasmaGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ff9b54" stop-opacity="0.95"/>
+                <stop offset="55%" stop-color="#d94826" stop-opacity="0.72"/>
+                <stop offset="100%" stop-color="#d94826" stop-opacity="0.06"/>
+              </radialGradient>
+              <marker id="arr-pbli" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M1,2 L8,5 L1,8 z" fill="#e06d2b"/>
+              </marker>
+              <marker id="arr-flibe" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M1,2 L8,5 L1,8 z" fill="#2b7de9"/>
+              </marker>
+              <marker id="arr-trit" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M1,2 L8,5 L1,8 z" fill="#157a4c"/>
+              </marker>
+              <marker id="arr-grad" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M1,2 L8,5 L1,8 z" fill="#22c55e"/>
+              </marker>
+            </defs>
+
+            <!-- Subtle zone divider backdrop -->
+            <rect x="14" y="14" width="932" height="322" rx="12" fill="none" stroke="var(--border)" stroke-dasharray="4 6" opacity="0.65"/>
+
+            <!-- ==================== FLOW PATHS ==================== -->
+            <!-- 1. Neutron heating from Plasma Core -> PbLi Blanket -->
+            <path id="path-neutrons" class="flow-line flow-fwd" d="M 185 110 C 215 95, 228 95, 254 95" stroke="#d94826" marker-end="url(#arr-pbli)"/>
+            <!-- 2. Hot PbLi Blanket -> Check Valve -> ORNL TRANSFORM HX -->
+            <path id="path-pbli-hot" class="flow-line flow-fwd" d="M 424 85 L 488 85" stroke="#e06d2b" marker-end="url(#arr-pbli)"/>
+            <!-- 3. Cooled PbLi return from HX -> Blanket -->
+            <path id="path-pbli-ret" class="flow-line flow-fwd" d="M 488 135 L 424 135" stroke="#c27834" stroke-opacity="0.7" marker-end="url(#arr-pbli)"/>
+            <!-- 4. Secondary FLiBe Hot from HX -> Power Turbine -->
+            <path id="path-flibe-hot" class="flow-line flow-fwd" d="M 716 85 L 786 85" stroke="#2b7de9" marker-end="url(#arr-flibe)"/>
+            <!-- 5. Secondary FLiBe Cold return Turbine -> HX (counter-current) -->
+            <path id="path-flibe-cold" class="flow-line flow-fwd" d="M 786 135 L 716 135" stroke="#58a6ff" stroke-opacity="0.75" marker-end="url(#arr-flibe)"/>
+            <!-- 6. Extracted Tritium Gas from HX Vacuum Permeator -> 16-Stage Cryo Column -->
+            <path id="path-trit-ext" class="flow-line flow-fwd" d="M 602 182 L 602 230 C 602 252, 588 260, 560 260 L 524 260" stroke="#157a4c" marker-end="url(#arr-trit)"/>
+            <!-- 7. Purified 99.979% T2 Fuel return Cryo Column -> Plasma Core -->
+            <path id="path-t2-fuel" class="flow-line flow-fwd" d="M 304 260 L 116 260 C 98 260, 92 248, 92 226 L 92 198" stroke="#157a4c" marker-end="url(#arr-trit)"/>
+
+            <!-- Animated particle layer populated by JS -->
+            <g id="plant-particles"></g>
+
+            <!-- ==================== NODE 1: BURNING PLASMA CORE ==================== -->
+            <g class="svg-node" data-plant-node="core" tabindex="0" role="button" aria-label="Stage 1: Burning Plasma Core">
+              <rect class="node-box" x="28" y="42" width="156" height="152" rx="14" fill="var(--surface)" stroke="#d94826" stroke-width="2"/>
+              <text x="106" y="64" text-anchor="middle" fill="#d94826" font-family="var(--font-mono)" font-size="10.5" font-weight="700">STAGE 1 · CORE PDE</text>
+              <!-- Stylized Tokamak D-Plasma -->
+              <ellipse class="plasma-glow" cx="106" cy="116" rx="44" ry="30" fill="url(#plasmaGrad)"/>
+              <ellipse cx="106" cy="116" rx="22" ry="13" fill="none" stroke="#ffd2a6" stroke-width="1.6" stroke-dasharray="4 3"/>
+              <text x="106" y="120" text-anchor="middle" fill="#ffffff" font-family="var(--font-sans)" font-size="11" font-weight="800">D + T → n</text>
+              <text x="106" y="164" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="12" font-weight="750">Burning Plasma</text>
+              <text x="106" y="181" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="10">965 MW · Q = 74.5</text>
+            </g>
+
+            <!-- ==================== NODE 2: PBLI BLANKET & CHECK VALVE (TIER 1) ==================== -->
+            <g class="svg-node" data-plant-node="tier1" tabindex="0" role="button" aria-label="Stage 2 Tier 1: PbLi Blanket and Check Valve">
+              <rect class="node-box" x="256" y="42" width="168" height="140" rx="14" fill="var(--surface)" stroke="#b45309" stroke-width="2"/>
+              <text x="340" y="64" text-anchor="middle" fill="#b45309" font-family="var(--font-mono)" font-size="10.5" font-weight="700">TIER 1 · DAE + VALVE</text>
+              <text x="340" y="84" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="12.5" font-weight="750">PbLi Blanket Loop</text>
+              <!-- Valve schematic bowtie icon -->
+              <polygon points="304,108 326,120 304,132" fill="var(--amber-bg)" stroke="#b45309" stroke-width="1.8"/>
+              <polygon points="348,108 326,120 348,132" fill="var(--amber-bg)" stroke="#b45309" stroke-width="1.8"/>
+              <line x1="326" y1="104" x2="326" y2="120" stroke="#b45309" stroke-width="1.8"/>
+              <circle cx="372" cy="120" r="12" fill="var(--amber-bg)" stroke="#b45309" stroke-width="1.8"/>
+              <text x="372" y="124" text-anchor="middle" fill="#b45309" font-family="var(--font-mono)" font-size="9" font-weight="800">P</text>
+              <text x="340" y="154" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="10">Check Valve (Softplus)</text>
+              <text x="340" y="170" text-anchor="middle" fill="var(--emerald)" font-family="var(--font-mono)" font-size="10" font-weight="700">6.0/10 · 0.216 s fwd</text>
+            </g>
+
+            <!-- ==================== NODE 3: ORNL TRANSFORM HX + PERMEATOR (TIER 2) ==================== -->
+            <g class="svg-node is-selected" data-plant-node="tier2" tabindex="0" role="button" aria-label="Stage 3 Tier 2: ORNL TRANSFORM Counter-Current Heat Exchanger">
+              <rect class="node-box" x="490" y="42" width="226" height="140" rx="14" fill="var(--surface)" stroke="#1a5fb4" stroke-width="2.6"/>
+              <text x="603" y="63" text-anchor="middle" fill="#1a5fb4" font-family="var(--font-mono)" font-size="10.5" font-weight="700">TIER 2 · ORNL TRANSFORM</text>
+              <text x="603" y="81" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="12.5" font-weight="750">6-Zone PbLi / FLiBe HX</text>
+              <!-- 6 counter-current exchanger cells -->
+              <g transform="translate(514, 92)">
+                <rect x="0" y="0" width="178" height="20" rx="4" fill="var(--plasma-bg)" stroke="#e06d2b" stroke-width="1.2"/>
+                <text x="89" y="13.5" text-anchor="middle" fill="#c2410c" font-family="var(--font-mono)" font-size="9.5" font-weight="700">PbLi (Zones 1 → 6) →</text>
+                <rect x="0" y="25" width="178" height="20" rx="4" fill="var(--surface-tint)" stroke="#1a5fb4" stroke-width="1.2"/>
+                <text x="89" y="38.5" text-anchor="middle" fill="#1a5fb4" font-family="var(--font-mono)" font-size="9.5" font-weight="700">← FLiBe (Zones 6 ← 1)</text>
+              </g>
+              <text x="603" y="154" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="10">+ Sieverts Vacuum Permeator</text>
+              <text x="603" y="170" text-anchor="middle" fill="var(--emerald)" font-family="var(--font-mono)" font-size="10.5" font-weight="800">10.0/10 · 7.8 ms (165×)</text>
+            </g>
+
+            <!-- ==================== TURBINE / POWER CONVERSION ==================== -->
+            <g class="svg-node" data-plant-node="tier2" tabindex="0" role="button" aria-label="Power Conversion Turbine outputting 172.7 MWe">
+              <rect class="node-box" x="788" y="52" width="144" height="118" rx="14" fill="var(--surface)" stroke="#2b7de9" stroke-width="2"/>
+              <text x="860" y="75" text-anchor="middle" fill="#2b7de9" font-family="var(--font-mono)" font-size="10" font-weight="700">POWER CONVERSION</text>
+              <text x="860" y="96" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="12.5" font-weight="750">sCO₂ Turbine</text>
+              <text x="860" y="120" text-anchor="middle" fill="var(--emerald)" font-family="var(--font-mono)" font-size="16" font-weight="800">172.7 MWe</text>
+              <text x="860" y="140" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="10">T₂ Target: 892 K</text>
+              <text x="860" y="156" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="9.5">Net Grid Output</text>
+            </g>
+
+            <!-- ==================== NODE 4: 16-STAGE CRYO COLUMN (TIER 3) ==================== -->
+            <g class="svg-node" data-plant-node="tier3" tabindex="0" role="button" aria-label="Stage 4 Tier 3: 16-Stage Cryogenic H2/HD/T2 Distillation Column">
+              <rect class="node-box" x="306" y="206" width="218" height="114" rx="14" fill="var(--surface)" stroke="#157a4c" stroke-width="2"/>
+              <text x="415" y="227" text-anchor="middle" fill="#157a4c" font-family="var(--font-mono)" font-size="10.5" font-weight="700">TIER 3 · 16-STAGE MESH</text>
+              <text x="415" y="246" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="12.5" font-weight="750">Cryo H₂ / HD / T₂ Column</text>
+              <!-- Mini tray lines -->
+              <g stroke="#157a4c" stroke-width="1.3" opacity="0.6">
+                <line x1="336" y1="260" x2="494" y2="260" stroke-dasharray="6 4"/>
+                <line x1="336" y1="268" x2="494" y2="268" stroke-dasharray="4 6"/>
+                <line x1="336" y1="276" x2="494" y2="276" stroke-dasharray="6 4"/>
+              </g>
+              <text x="415" y="294" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="10">~24 K · 99.979% T₂ Fuel Purity</text>
+              <text x="415" y="310" text-anchor="middle" fill="var(--emerald)" font-family="var(--font-mono)" font-size="10.5" font-weight="800">8.0/10 · 42.8 ms fwd</text>
+            </g>
+
+            <!-- Pipe annotations -->
+            <text x="456" y="75" text-anchor="middle" fill="#e06d2b" font-family="var(--font-mono)" font-size="9.5" font-weight="700">PbLi Hot</text>
+            <text x="752" y="75" text-anchor="middle" fill="#2b7de9" font-family="var(--font-mono)" font-size="9.5" font-weight="700">FLiBe</text>
+            <text x="655" y="236" text-anchor="middle" fill="#157a4c" font-family="var(--font-mono)" font-size="9.5" font-weight="700">Extracted T₂</text>
+            <text x="200" y="250" text-anchor="middle" fill="#157a4c" font-family="var(--font-mono)" font-size="9.5" font-weight="700">99.979% T₂ Refuel Loop</text>
+            <text id="plant-mode-banner" x="932" y="302" text-anchor="end" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="10.5" font-weight="700">Mode: Forward Physics Simulation</text>
+          </svg>
+        </div>
+
+        <div class="flow-legend">
+          <span><span class="legend-dot" style="background:#e06d2b"></span>Primary PbLi Liquid Metal</span>
+          <span><span class="legend-dot" style="background:#2b7de9"></span>Secondary FLiBe Molten Salt</span>
+          <span><span class="legend-dot" style="background:#157a4c"></span>Closed Tritium Fuel Cycle</span>
+          <span id="legend-grad-note" style="color:var(--emerald); font-weight:650; display:none;"><span class="legend-dot" style="background:#22c55e"></span>Backward <code>jax.grad</code> Sensitivity Pulses (∂MWe / ∂θ)</span>
+        </div>
+      </div>
+
+      <div class="plant-flow" id="plant-flow" role="group" aria-label="Fusion plant stages"></div>
+
+      <div class="stage-detail" id="stage-detail" aria-live="polite">
+        <div>
+          <div class="eyebrow" id="stage-eyebrow"></div>
+          <h3 id="stage-title"></h3>
+          <p><strong>Plain-English Intuition:</strong> <span id="stage-analogy"></span></p>
+          <p><strong>Physics &amp; Model Structure:</strong> <span id="stage-eng"></span></p>
+          <p><strong>Why Direct GPU Export Fails:</strong> <span id="stage-challenge"></span></p>
+        </div>
+        <div class="mini-metrics" id="stage-metrics"></div>
+      </div>
+
+      <div class="grid-2" style="margin-block-start: 1.25rem;">
+        <div class="card">
+          <h3>Bottleneck 1 · Serial CPU Execution</h3>
+          <p style="margin:0; color: var(--ink-muted); font-size: 0.92rem;">
+            Traditional Modelica tools (OpenModelica <code>omc</code>, Dymola) compile to sequential C code running one trajectory at a time (~0.25–5 s per run). Sweeping 1,000 off-design uncertainties or training a 1,000,000-episode RL policy would take <strong>days to weeks</strong> on a CPU.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Bottleneck 2 · Black-Box No-Gradient Optimization</h3>
+          <p style="margin:0; color: var(--ink-muted); font-size: 0.92rem;">
+            Legacy simulators are opaque black boxes: optimizing 6+ coupled plant variables or neural controller weights requires slow derivative-free search. Putting physics inside <strong>JAX</strong> enables both <strong>1,000×–100,000× GPU batching (<code>vmap</code>)</strong> and <strong>exact backpropagation (<code>jax.grad</code>)</strong>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 2: RUMOCA & WARP LAB ==================== -->
+    <section class="section" id="rumoca" data-slide="2. Rumoca & GPU Lab">
+      <div class="eyebrow">02 · Compiler Boundaries &amp; GPU Physics Refactoring</div>
+      <h2>Complementary to Rumoca: Crossing the Four Industrial GPU Walls</h2>
+      <p class="lead">
+        A common question is why multi-agent refactoring is needed when deterministic Modelica-to-JAX compilers like <strong>Rumoca</strong> exist. The answer is a clean division of labor: <strong>we use Rumoca inside the agent loop as our front-end compiler</strong>, and deploy <code>meshswarm</code>/<code>meshevolve</code> precisely where deterministic translation stops.
+      </p>
+
+      <!-- ANIMATED MESHSWARM + MESHEVOLVE PIPELINE SIMULATOR -->
+      <div class="arch-stage" id="pipeline-arch-stage">
+        <div class="arch-toolbar">
+          <div>
+            <div class="eyebrow" style="margin:0;">Interactive Workflow Simulator · Watch How Swarms Optimize Modelica</div>
+            <h3 style="margin:0.15rem 0 0; font-size:1rem;">End-to-End <code>meshswarm</code> + <code>meshevolve</code> Optimization Pipeline</h3>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="seg-btn" id="pipe-story-t2" aria-pressed="true">Tier-2 Breakthrough (165×)</button>
+            <button type="button" class="seg-btn" id="pipe-story-t3" aria-pressed="false">Tier-3 Lesson Recovery</button>
+            <button type="button" class="seg-btn" id="pipe-story-cheat" aria-pressed="false">Anti-Cheat Rejection</button>
+            <button type="button" class="icon-btn" id="pipe-pause-btn">Pause</button>
+          </div>
+        </div>
+
+        <div class="svg-frame">
+          <svg id="pipeline-svg" viewBox="0 0 960 368" role="img" aria-label="Animated workflow architecture showing Modelica input, OpenModelica oracle, Rumoca front-end probe, 3-agent meshswarm peer board, 5-gate GPU anti-cheat grader, meshevolve cross-generation lesson memory, and verified JAX GPU output">
+            <defs>
+              <marker id="p-arr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M1,2 L8,5 L1,8 z" fill="#58a6ff"/>
+              </marker>
+              <marker id="p-arr-amb" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M1,2 L8,5 L1,8 z" fill="#d97706"/>
+              </marker>
+              <marker id="p-arr-grn" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M1,2 L8,5 L1,8 z" fill="#157a4c"/>
+              </marker>
+            </defs>
+
+            <!-- Connectors -->
+            <!-- Modelica -> Rumoca -->
+            <path id="wpath-in-rum" class="flow-line flow-fwd" d="M 164 150 L 214 150" stroke="#58a6ff" marker-end="url(#p-arr)"/>
+            <!-- Rumoca -> Clean ODE bypass (dashed faint) -->
+            <path id="wpath-rum-bypass" d="M 358 122 C 420 82, 740 82, 816 140" fill="none" stroke="var(--border)" stroke-width="1.8" stroke-dasharray="5 5"/>
+            <text x="588" y="96" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="9.5">Clean Flat ODEs → Direct Rumoca JAX Export</text>
+            <!-- Rumoca Industrial Detour -> meshswarm -->
+            <path id="wpath-rum-swarm" class="flow-line flow-fwd" d="M 286 188 L 286 248 L 352 248" stroke="#d97706" marker-end="url(#p-arr-amb)"/>
+            <!-- OpenModelica Oracle -> Grader (hidden cases) -->
+            <path id="wpath-omc-grade" d="M 94 282 L 94 342 L 690 342 L 690 318" fill="none" stroke="var(--border)" stroke-width="1.8" stroke-dasharray="4 4"/>
+            <text x="392" y="336" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="9.5">Hidden Held-Out omc DASSL Trajectories (tol 1e-10) → Grader</text>
+            <!-- meshswarm -> 5-Gate GPU Grader -->
+            <path id="wpath-swarm-grade" class="flow-line flow-fwd" d="M 578 242 L 622 242" stroke="#58a6ff" marker-end="url(#p-arr)"/>
+            <!-- Grader -> meshevolve Lesson Feedback Arc -->
+            <path id="wpath-grade-evo" class="flow-line flow-fwd" d="M 690 144 C 690 54, 595 44, 548 44" stroke="#d97706" marker-end="url(#p-arr-amb)"/>
+            <!-- meshevolve -> meshswarm Next Gen Injection -->
+            <path id="wpath-evo-swarm" class="flow-line flow-fwd" d="M 412 44 C 378 44, 378 104, 396 146" stroke="#d97706" marker-end="url(#p-arr-amb)"/>
+            <!-- Grader -> Verified JAX GPU Output -->
+            <path id="wpath-grade-out" class="flow-line flow-fwd" d="M 762 242 L 806 242" stroke="#157a4c" marker-end="url(#p-arr-grn)"/>
+
+            <!-- ==================== BOX 1: MODELICA + OMC ==================== -->
+            <g id="wnode-input">
+              <rect x="24" y="114" width="140" height="72" rx="12" fill="var(--surface)" stroke="var(--border)" stroke-width="2"/>
+              <text x="94" y="137" text-anchor="middle" fill="var(--accent)" font-family="var(--font-mono)" font-size="10" font-weight="700">INPUT · LEGACY</text>
+              <text x="94" y="156" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="12.5" font-weight="750">Modelica (.mo)</text>
+              <text x="94" y="173" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="9.5">ORNL TRANSFORM</text>
+
+              <rect x="24" y="212" width="140" height="70" rx="12" fill="var(--surface-alt)" stroke="var(--border)" stroke-width="1.8"/>
+              <text x="94" y="235" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="10" font-weight="700">ORACLE · CPU</text>
+              <text x="94" y="254" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="12" font-weight="750">OpenModelica</text>
+              <text x="94" y="270" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="9.5">omc 1.27.1 DASSL</text>
+            </g>
+
+            <!-- ==================== BOX 2: RUMOCA PROBE ==================== -->
+            <g id="wnode-rumoca">
+              <rect x="216" y="114" width="140" height="74" rx="12" fill="var(--amber-bg)" stroke="#d97706" stroke-width="2"/>
+              <text x="286" y="136" text-anchor="middle" fill="#a15c07" font-family="var(--font-mono)" font-size="10" font-weight="700">FRONT-END PROBE</text>
+              <text x="286" y="155" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="12.5" font-weight="750">Rumoca 0.10.4</text>
+              <text x="286" y="174" text-anchor="middle" fill="#b42318" font-family="var(--font-mono)" font-size="9.5" font-weight="700">0/9 TRANSFORM → Detour</text>
+            </g>
+
+            <!-- ==================== BOX 3: MESHEVOLVE LESSON MEMORY ==================== -->
+            <g id="wnode-evolve">
+              <rect x="414" y="16" width="134" height="56" rx="12" fill="var(--amber-bg)" stroke="#d97706" stroke-width="2"/>
+              <text x="481" y="36" text-anchor="middle" fill="#a15c07" font-family="var(--font-mono)" font-size="10" font-weight="800">meshevolve</text>
+              <text x="481" y="54" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="11" font-weight="700">Lesson Memory</text>
+              <text x="481" y="66" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="8.8">Cross-Gen &amp; Cross-Task</text>
+            </g>
+
+            <!-- ==================== BOX 4: MESHSWARM 3-AGENT PEER BOARD ==================== -->
+            <g id="wnode-swarm">
+              <rect x="354" y="148" width="224" height="170" rx="14" fill="var(--surface-tint)" stroke="var(--accent)" stroke-width="2.2"/>
+              <text x="466" y="169" text-anchor="middle" fill="var(--accent)" font-family="var(--font-mono)" font-size="10.5" font-weight="800">meshswarm · 3 PEER AGENTS</text>
+              <!-- Peer triangles -->
+              <line x1="414" y1="204" x2="518" y2="204" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3"/>
+              <line x1="414" y1="204" x2="466" y2="274" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3"/>
+              <line x1="518" y1="204" x2="466" y2="274" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3"/>
+
+              <g class="agent-pulse">
+                <rect x="366" y="182" width="94" height="44" rx="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.6"/>
+                <text x="413" y="200" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="10.5" font-weight="750">Unpacker</text>
+                <text x="413" y="215" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="8.5">omc · cv≠cp</text>
+              </g>
+              <g class="agent-pulse">
+                <rect x="472" y="182" width="94" height="44" rx="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.6"/>
+                <text x="519" y="200" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="10.5" font-weight="750">GPU Kernel</text>
+                <text x="519" y="215" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="8.5">vmap · RK4</text>
+              </g>
+              <g class="agent-pulse">
+                <rect x="404" y="254" width="124" height="48" rx="8" fill="var(--surface)" stroke="var(--emerald)" stroke-width="1.6"/>
+                <text x="466" y="273" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="10.5" font-weight="750">Adjoint Reviewer</text>
+                <text x="466" y="289" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="8.5">custom_jvp · drift</text>
+              </g>
+            </g>
+
+            <!-- ==================== BOX 5: 5-GATE ISOLATED GPU GRADER ==================== -->
+            <g id="wnode-grader">
+              <rect x="624" y="146" width="138" height="172" rx="14" fill="var(--surface)" stroke="var(--border)" stroke-width="2"/>
+              <text x="693" y="166" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="10" font-weight="800">5-GATE GRADER</text>
+              <text x="693" y="179" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-mono)" font-size="8.5">--network none GPU</text>
+
+              <g id="pipe-g1"><rect x="636" y="188" width="114" height="21" rx="5" fill="var(--surface-alt)" stroke="var(--border)"/><text x="693" y="202" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="9.5" font-weight="700">1. AST &amp; Sandbox</text></g>
+              <g id="pipe-g2"><rect x="636" y="213" width="114" height="21" rx="5" fill="var(--surface-alt)" stroke="var(--border)"/><text x="693" y="227" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="9.5" font-weight="700">2. 8× omc Parity</text></g>
+              <g id="pipe-g3"><rect x="636" y="238" width="114" height="21" rx="5" fill="var(--surface-alt)" stroke="var(--border)"/><text x="693" y="252" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="9.5" font-weight="700">3. Mass &lt; 1e-11</text></g>
+              <g id="pipe-g4"><rect x="636" y="263" width="114" height="21" rx="5" fill="var(--surface-alt)" stroke="var(--border)"/><text x="693" y="277" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="9.5" font-weight="700">4. JVP=VJP + FD</text></g>
+              <g id="pipe-g5"><rect x="636" y="288" width="114" height="21" rx="5" fill="var(--surface-alt)" stroke="var(--border)"/><text x="693" y="302" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="9.5" font-weight="700">5. 10-Rung Speed</text></g>
+            </g>
+
+            <!-- ==================== BOX 6: VERIFIED JAX GPU OUTPUT ==================== -->
+            <g id="wnode-output">
+              <rect x="808" y="156" width="132" height="156" rx="14" fill="var(--emerald-bg)" stroke="#157a4c" stroke-width="2.2"/>
+              <text x="874" y="180" text-anchor="middle" fill="#157a4c" font-family="var(--font-mono)" font-size="10" font-weight="800">VERIFIED OUTPUT</text>
+              <text x="874" y="201" text-anchor="middle" fill="var(--ink)" font-family="var(--font-sans)" font-size="12.5" font-weight="800">JAX GPU Op</text>
+              <text id="pipe-out-score" x="874" y="229" text-anchor="middle" fill="#157a4c" font-family="var(--font-mono)" font-size="17" font-weight="800">10.0 / 10</text>
+              <text id="pipe-out-sub" x="874" y="249" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="10">7.8 ms / 1k runs</text>
+              <text x="874" y="272" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-sans)" font-size="9.5">→ 151k ep/s GPU RL</text>
+              <text x="874" y="287" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-sans)" font-size="9.5">→ 17.5 µs CPU MLP</text>
+              <text x="874" y="302" text-anchor="middle" fill="var(--ink-muted)" font-family="var(--font-sans)" font-size="9.5">→ 3-Solver Co-Design</text>
+            </g>
+
+            <!-- Active moving glowing packet -->
+            <g id="pipe-packet" opacity="0">
+              <circle r="8" fill="#58a6ff" opacity="0.28"/>
+              <circle r="4.8" fill="#1a5fb4" stroke="#ffffff" stroke-width="1.5"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="pipe-narrator" id="pipe-narrator">
+          <div style="flex:1; min-width:240px;">
+            <div class="mono" style="font-size:0.76rem; font-weight:750; color:var(--accent);" id="pipe-step-tag">STEP 1 / 6</div>
+            <div style="font-size:0.9rem; font-weight:650;" id="pipe-step-text">Loading workflow...</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.55rem;">
+            <div class="pipe-step-dots" id="pipe-step-dots" aria-label="Workflow steps"></div>
+            <button type="button" class="icon-btn" id="pipe-prev-btn" aria-label="Previous workflow step">←</button>
+            <button type="button" class="icon-btn" id="pipe-next-btn" aria-label="Next workflow step">→</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stack-grid" id="stack-grid"></div>
+
+      <div class="callout amber">
+        <strong>Empirical Boundary (<code>rumoca 0.10.4</code>):</strong> On clean, flat explicit ODEs, Rumoca exports fast, deterministic JAX. However, on industrial fusion models it scores <strong>0 / 9</strong> on <code>TRANSFORM-UnitTests</code> and <strong>0 / 3</strong> across our Tier 1–3 benchmarks—blocked by external library packages, implicit algebraic residual loops, hard <code>if/else</code> valve kinks, and GPU register-spilling dense Jacobians. As future Rumoca releases improve, our swarms immediately inherit those gains ("rising tide" partnership).
+      </div>
+
+      <!-- INTERACTIVE LAB 1: Check-Valve Smoothing & Warp Divergence -->
+      <div class="lab-box">
+        <div class="lab-header">
+          <div>
+            <div class="eyebrow" style="margin:0;">Interactive Lab 1 · GPU Execution &amp; Differentiability</div>
+            <h3 style="margin:0.2rem 0 0;">Why Hard Modelica <code>if/else</code> Valves Break GPU Warps &amp; Adjoints</h3>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="seg-btn" id="preset-naive" aria-pressed="true">Naive Modelica (ε = 0)</button>
+            <button type="button" class="seg-btn" id="preset-smooth" aria-pressed="false">Swarm Softplus (ε = 0.08)</button>
+          </div>
+        </div>
+
+        <div class="controls-bar">
+          <div class="control-group">
+            <label for="valve-eps">
+              <span>Valve Smoothing Width (ε)</span>
+              <output id="valve-eps-out" for="valve-eps">0.000 (Hard if/else)</output>
+            </label>
+            <input type="range" id="valve-eps" min="0" max="0.25" step="0.005" value="0">
+          </div>
+          <div class="control-group">
+            <label for="valve-spread">
+              <span>Ensemble ΔP Spread Across 32 GPU Threads</span>
+              <output id="valve-spread-out" for="valve-spread">±1.20 bar</output>
+            </label>
+            <input type="range" id="valve-spread" min="0.2" max="2.0" step="0.05" value="1.2">
+          </div>
+        </div>
+
+        <div class="grid-2-asym">
+          <div class="canvas-wrap">
+            <canvas id="valve-canvas" width="640" height="300" aria-label="Check valve flow and gradient curve"></canvas>
+          </div>
+          <div>
+            <h3 style="font-size:0.96rem;">Simulated 32-Thread GPU Warp Execution</h3>
+            <p style="font-size:0.84rem; color:var(--ink-muted); margin:0 0 0.5rem;">
+              Each square is one parallel plant scenario running on the same GPU warp. Under hard <code>if/else</code>, threads on opposite sides of ΔP = 0 cannot execute simultaneously—the GPU serializes both branches.
+            </p>
+            <div class="warp-grid" id="warp-grid" aria-live="polite"></div>
+            <div class="mini-metrics" style="margin-block-start:0.65rem; grid-template-columns: 1fr 1fr;">
+              <div class="mini-metric" id="warp-util-card">
+                <div class="mini-metric-label">SIMT Warp Efficiency</div>
+                <div class="mini-metric-val" id="warp-util-val">—</div>
+              </div>
+              <div class="mini-metric" id="valve-grad-card">
+                <div class="mini-metric-label">Adjoint Gradient Health</div>
+                <div class="mini-metric-val" id="valve-grad-val">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Responsive Stack Table -->
+      <div tabindex="0" role="region" aria-labelledby="stack-table-caption" class="table-wrapper">
+        <table>
+          <caption id="stack-table-caption">Division of Labor Across OpenModelica, Rumoca, and meshswarm / meshevolve</caption>
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th>OpenModelica (omc)</th>
+              <th>Rumoca (v0.10.4)</th>
+              <th>meshswarm + meshevolve</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Industrial Libraries (ORNL TRANSFORM)</th>
+              <td data-label="OpenModelica (omc)"><span class="tag pass">Full Support</span></td>
+              <td data-label="Rumoca (v0.10.4)"><span class="tag fail">0 / 9 UnitTests</span></td>
+              <td data-label="meshswarm + meshevolve"><span class="tag pass">6/6 Tier-2 · 165× faster</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Implicit DAE &amp; Non-Smooth Valves</th>
+              <td data-label="OpenModelica (omc)"><span class="tag pass">DASSL (CPU)</span></td>
+              <td data-label="Rumoca (v0.10.4)"><span class="tag fail">Unsupported</span></td>
+              <td data-label="meshswarm + meshevolve"><span class="tag pass">Newton + @jax.custom_jvp</span></td>
+            </tr>
+            <tr>
+              <th scope="row">GPU Batching (1k–1M Trajectories)</th>
+              <td data-label="OpenModelica (omc)"><span class="tag fail">Serial CPU</span></td>
+              <td data-label="Rumoca (v0.10.4)"><span class="tag warn">Clean ODEs only</span></td>
+              <td data-label="meshswarm + meshevolve"><span class="tag pass">151,690 ep/s on A100</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Exact End-to-End Gradients (JVP + VJP)</th>
+              <td data-label="OpenModelica (omc)"><span class="tag fail">None</span></td>
+              <td data-label="Rumoca (v0.10.4)"><span class="tag warn">Clean ODEs only</span></td>
+              <td data-label="meshswarm + meshevolve"><span class="tag pass">Verified &lt; 1e-10 JVP=VJP</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 3: VERIFICATION & PHASE 3 ==================== -->
+    <section class="section" id="evolution" data-slide="3. Phase 3 Evolution">
+      <div class="eyebrow">03 · Anti-Reward-Hacking Grader &amp; Phase 3 Swarm Evolution</div>
+      <h2>20 Swarms, $9.69 Total Cost, and a 165× Breakthrough Over Hand-Written JAX</h2>
+      <p class="lead">
+        Speed is worthless if a solver fakes accuracy or drops gradients. Every swarm candidate is graded inside an isolated <code>--network none</code> GPU container under a multiplicative 5-gate contract—failing any binary gate collapses the score to <strong>0.0</strong>. Click a gate to inspect its verification rule:
+      </p>
+
+      <div class="formula-strip" id="gate-strip" role="group" aria-label="Multiplicative verification gates">
+        <span><strong>Score</strong> =</span>
+      </div>
+      <div class="callout" id="gate-detail" aria-live="polite" style="margin-block-start:0.5rem;"></div>
+
+      <!-- INTERACTIVE LAB 2: Phase 3 Evolution Explorer with Accessible Tabs -->
+      <div class="lab-box">
+        <div class="lab-header">
+          <div>
+            <div class="eyebrow" style="margin:0;">Interactive Lab 2 · Single-A100 Re-Grade (Slurm Job 23388961)</div>
+            <h3 style="margin:0.2rem 0 0;">Phase 3 Multi-Generation Evolution &amp; Cross-Task Transfer Explorer</h3>
+          </div>
+          <div class="btn-group" role="group" aria-label="Chart metric mode">
+            <button type="button" class="seg-btn" id="p3-mode-score" aria-pressed="true">Composite Score (0–10)</button>
+            <button type="button" class="seg-btn" id="p3-mode-time" aria-pressed="false">Wall Time (ms, Log Scale)</button>
+          </div>
+        </div>
+
+        <div class="tabs" id="p3-tabs">
+          <div class="tablist" focusgroup="tablist nomemory" role="tablist" aria-label="Phase 3 benchmark tiers">
+            <button type="button" role="tab" id="tab-t2" aria-selected="true" focusgroupstart data-tier="tier2">Tier 2 · ORNL TRANSFORM HX (10.0/10)</button>
+            <button type="button" role="tab" id="tab-t3" aria-selected="false" data-tier="tier3">Tier 3 · 16-Stage Cryo Column (8.0/10)</button>
+            <button type="button" role="tab" id="tab-t1" aria-selected="false" data-tier="tier1">Tier 1 · BlanketValveDAE (6.0/10)</button>
+            <button type="button" role="tab" id="tab-all" aria-selected="false" data-tier="all">All 20 Swarms Table</button>
+          </div>
+
+          <div class="tab-panels">
+            <div role="tabpanel" aria-labelledby="tab-t2" data-panel="tier2">
+              <div class="panel-body">
+                <div class="canvas-wrap"><canvas id="p3-canvas-tier2" width="960" height="320" aria-label="Tier 2 evolution chart"></canvas></div>
+                <div class="callout emerald" id="p3-note-tier2"></div>
+              </div>
+            </div>
+
+            <div role="tabpanel" aria-labelledby="tab-t3" data-panel="tier3" hidden="until-found">
+              <div class="panel-body">
+                <div class="canvas-wrap"><canvas id="p3-canvas-tier3" width="960" height="320" aria-label="Tier 3 evolution chart"></canvas></div>
+                <div class="callout" id="p3-note-tier3"></div>
+              </div>
+            </div>
+
+            <div role="tabpanel" aria-labelledby="tab-t1" data-panel="tier1" hidden="until-found">
+              <div class="panel-body">
+                <div class="canvas-wrap"><canvas id="p3-canvas-tier1" width="960" height="320" aria-label="Tier 1 evolution chart"></canvas></div>
+                <div class="callout amber" id="p3-note-tier1"></div>
+              </div>
+            </div>
+
+            <div role="tabpanel" aria-labelledby="tab-all" data-panel="all" hidden="until-found">
+              <div class="panel-body">
+                <div tabindex="0" role="region" aria-labelledby="p3-table-caption" class="table-wrapper">
+                  <table>
+                    <caption id="p3-table-caption">Complete 20-Swarm Single-A100 Re-Grade Summary (Job 23388961 · Total LLM Spend $9.69)</caption>
+                    <thead>
+                      <tr>
+                        <th>Tier &amp; Gen</th>
+                        <th>run-1 (lessons)</th>
+                        <th>run-2 (lessons)</th>
+                        <th>control (no lessons)</th>
+                        <th>Lesson Mean vs Ctrl</th>
+                        <th>Cost</th>
+                        <th>Key Result</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th scope="row">Tier 1 · Gen 1</th>
+                        <td data-label="run-1"><span class="tag fail">0.0</span></td>
+                        <td data-label="run-2"><span class="tag fail">0.0</span></td>
+                        <td data-label="control">—</td>
+                        <td data-label="Lesson vs Ctrl">0.0 (seed)</td>
+                        <td data-label="Cost">$0.90</td>
+                        <td data-label="Key Result">Valve kink broke closure FD (9.1e-4)</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Tier 1 · Gen 2</th>
+                        <td data-label="run-1"><span class="tag fail">0.0</span></td>
+                        <td data-label="run-2"><span class="tag fail">0.0</span></td>
+                        <td data-label="control"><span class="tag fail">0.0</span></td>
+                        <td data-label="Lesson vs Ctrl">0.0 vs 0.0</td>
+                        <td data-label="Cost">$0.56</td>
+                        <td data-label="Key Result">Adaptive timeout (&gt;240 s); unmerged stub</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Tier 1 · Gen 3</th>
+                        <td data-label="run-1"><span class="tag pass">6.0 (0.843 s)</span></td>
+                        <td data-label="run-2"><span class="tag fail">0.0</span></td>
+                        <td data-label="control"><span class="tag fail">0.0</span></td>
+                        <td data-label="Lesson vs Ctrl"><span class="tag pass">3.0 vs 0.0</span></td>
+                        <td data-label="Cost">$0.61</td>
+                        <td data-label="Key Result">0.216 s fwd + 0.627 s grad; omc 3.6e-8</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Tier 2 · Gen 1</th>
+                        <td data-label="run-1"><span class="tag pass">4.0 (3.434 s)</span></td>
+                        <td data-label="run-2"><span class="tag pass">9.0 (0.107 s)</span></td>
+                        <td data-label="control"><span class="tag pass">5.0 (1.443 s)</span></td>
+                        <td data-label="Lesson vs Ctrl"><span class="tag pass">6.50 vs 5.00</span></td>
+                        <td data-label="Cost">$2.32</td>
+                        <td data-label="Key Result">3/3 passed; run-2 hit 41.3 ms fwd (150-step RK4)</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Tier 2 · Gen 2</th>
+                        <td data-label="run-1"><span class="tag pass">10.0 (0.025 s)</span></td>
+                        <td data-label="run-2"><span class="tag pass">5.0 (1.329 s)</span></td>
+                        <td data-label="control"><span class="tag pass">7.0 (0.263 s)</span></td>
+                        <td data-label="Lesson vs Ctrl"><span class="tag pass">7.50 vs 7.00</span></td>
+                        <td data-label="Cost">$2.92</td>
+                        <td data-label="Key Result"><strong>7.8 ms fwd + 17.5 ms grad (165× vs ref!)</strong></td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Tier 3 · Gen 1</th>
+                        <td data-label="run-1"><span class="tag fail">0.0</span></td>
+                        <td data-label="run-2"><span class="tag fail">0.0</span></td>
+                        <td data-label="control"><span class="tag fail">0.0</span></td>
+                        <td data-label="Lesson vs Ctrl">0.0 vs 0.0</td>
+                        <td data-label="Cost">$0.79</td>
+                        <td data-label="Key Result">Prototypes in scratch/; custom_vjp broke JVP</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Tier 3 · Gen 2</th>
+                        <td data-label="run-1"><span class="tag pass">2.0 (8.045 s)</span></td>
+                        <td data-label="run-2"><span class="tag pass">5.0 (1.863 s)</span></td>
+                        <td data-label="control"><span class="tag pass">8.0 (0.175 s)</span></td>
+                        <td data-label="Lesson vs Ctrl"><span class="tag warn">3.50 vs 8.00</span></td>
+                        <td data-label="Cost">$1.00</td>
+                        <td data-label="Key Result">3/3 passed (omc 1.5–5.2e-10); 42.8 ms fwd</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 4: PHASE 4 CONTROL & LIVE PHYSICS ==================== -->
+    <section class="section" id="control" data-slide="4. Phase 4 Control & RL">
+      <div class="eyebrow">04 · Phase 4 Downstream Control &amp; Edge Distillation</div>
+      <h2>Live 15-State ORNL TRANSFORM Plant Sandbox &amp; 1,024,000-Episode GPU RL</h2>
+      <p class="lead">
+        To prove that Swarm-generated operators unlock workflows impossible in serial Modelica, we wrapped the winning <code>10.0/10</code> Tier-2 solver into a 30-second closed-loop control environment subject to fusion power ramps, ELM heat bursts, and partial primary coolant pump trips.
+      </p>
+
+      <!-- INTERACTIVE LAB 3: LIVE IN-BROWSER 15-STATE TRANSFORM PHYSICS SIMULATOR -->
+      <div class="lab-box">
+        <div class="lab-header">
+          <div>
+            <div class="eyebrow" style="margin:0;">Interactive Lab 3 · Live In-Browser Physics (Exact Port of Swarm Tier-2 RK4 + Newton Solver)</div>
+            <h3 style="margin:0.2rem 0 0;">Stress-Test the Fusion Blanket Heat Exchanger Under Transient Disturbances</h3>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="seg-btn" id="scen-mild" aria-pressed="false">Mild Ramp</button>
+            <button type="button" class="seg-btn" id="scen-elm" aria-pressed="true">ELM Burst + Pump Trip</button>
+            <button type="button" class="seg-btn" id="scen-severe" aria-pressed="false">Severe Off-Design</button>
+          </div>
+        </div>
+
+        <div class="controls-bar">
+          <div class="control-group">
+            <label for="sim-ramp"><span>Fusion Power Ramp (ΔT)</span><output id="sim-ramp-out" for="sim-ramp">+24 K</output></label>
+            <input type="range" id="sim-ramp" min="5" max="32" step="1" value="24">
+          </div>
+          <div class="control-group">
+            <label for="sim-elm"><span>ELM Thermal Spike (at t = 12 s)</span><output id="sim-elm-out" for="sim-elm">+20 K</output></label>
+            <input type="range" id="sim-elm" min="0" max="25" step="1" value="20">
+          </div>
+          <div class="control-group">
+            <label for="sim-trip"><span>Primary PbLi Pump Flow Retained (t ≥ 15 s)</span><output id="sim-trip-out" for="sim-trip">58%</output></label>
+            <input type="range" id="sim-trip" min="45" max="100" step="1" value="58">
+          </div>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas id="plant-sim-canvas" width="960" height="310" aria-label="Live 15-state heat exchanger simulation comparing open-loop and closed-loop control"></canvas>
+        </div>
+
+        <div class="gauge-grid" style="margin-block-start:0.9rem; margin-block-end:0;">
+          <div class="gauge-card bad">
+            <div class="gauge-label">Open-Loop FLiBe RMSE</div>
+            <div class="gauge-num" id="sim-ol-rmse">—</div>
+            <div class="gauge-status">Drifts off 892 K setpoint</div>
+          </div>
+          <div class="gauge-card ok">
+            <div class="gauge-label">Closed-Loop FLiBe RMSE</div>
+            <div class="gauge-num" id="sim-cl-rmse">—</div>
+            <div class="gauge-status">Feedback tracks 892 K</div>
+          </div>
+          <div class="gauge-card">
+            <div class="gauge-label">Peak PbLi Outlet T₁</div>
+            <div class="gauge-num" id="sim-max-t1">—</div>
+            <div class="gauge-status">Soft ceiling: 948.0 K</div>
+          </div>
+          <div class="gauge-card ok">
+            <div class="gauge-label">Live Tritium Mass Drift</div>
+            <div class="gauge-num" id="sim-drift">—</div>
+            <div class="gauge-status">Exact float64 conservation</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verified Phase 4 A100 RL vs SHAC Curves + Edge MLP Card -->
+      <div class="grid-2-asym" style="margin-block-start:1.25rem;">
+        <div class="card">
+          <div class="lab-header" style="margin-block-end:0.75rem; padding-block-end:0.65rem;">
+            <div>
+              <div class="eyebrow" style="margin:0;">Verified A100 Benchmark (Job 23390494)</div>
+              <h3 style="margin:0.15rem 0 0;">Differentiable SHAC vs. 1,024,000-Episode GPU PPO</h3>
+            </div>
+            <div class="btn-group">
+              <button type="button" class="seg-btn" id="rl-x-ep" aria-pressed="true">X: Episodes (Log)</button>
+              <button type="button" class="seg-btn" id="rl-x-sec" aria-pressed="false">X: A100 Wall Time (s)</button>
+            </div>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="rl-canvas" width="600" height="275" aria-label="SHAC vs PPO learning curves on A100"></canvas>
+          </div>
+          <p style="font-size:0.84rem; color:var(--ink-muted); margin:0.65rem 0 0;">
+            Backpropagating exact physics gradients gives <strong>SHAC/BPTT a 20× sample-efficiency edge</strong> (<code>51,200</code> ep in <code>5.09 s</code> → <code>1.37 K</code> RMSE), while fused GPU rollouts let <strong>PPO run 1,024,000 episodes in 6.75 s</strong> (<code>151,690 ep/s</code>, ~39,000× faster than ~74 h of serial <code>omc</code>).
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">Real-Time PLC / Edge Deployment</div>
+          <h3>&lt; 1 ms Deterministic CPU MLP Distillation</h3>
+          <p style="font-size:0.88rem; color:var(--ink-muted); margin-block-start:0.2rem;">
+            Real fusion plant controllers cannot wait for a GPU optimizer every millisecond. We distilled exact differentiable MPC trajectories (30,720 state-action pairs) into a tiny standalone NumPy MLP:
+          </p>
+          <div class="mini-metrics">
+            <div class="mini-metric" style="border-inline-start-color: var(--accent);">
+              <div class="mini-metric-label">Network Size</div>
+              <div class="mini-metric-val">9 → 16 → 16 → 3 (483 params)</div>
+            </div>
+            <div class="mini-metric" style="border-inline-start-color: var(--emerald);">
+              <div class="mini-metric-label">Single-Thread CPU Latency (EPYC 7742)</div>
+              <div class="mini-metric-val">11.69 µs mean · 17.47 µs p99.9</div>
+            </div>
+            <div class="mini-metric" style="border-inline-start-color: var(--emerald);">
+              <div class="mini-metric-label">Margin Below 1.0 ms Guardrail</div>
+              <div class="mini-metric-val">57.2× faster · 2.22e-16 JAX=NumPy</div>
+            </div>
+            <div class="mini-metric" style="border-inline-start-color: var(--amber);">
+              <div class="mini-metric-label">Held-Out Control Quality (1,024 scens)</div>
+              <div class="mini-metric-val">1.51 K RMSE · 1.48e-15 drift</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 5: PHASE 4 CO-DESIGN ==================== -->
+    <section class="section" id="codesign" data-slide="5. 3-Solver Co-Design">
+      <div class="eyebrow">05 · End-to-End Whole-Plant Co-Design</div>
+      <h2>Coupling 3 Differentiable Solvers Inside One <code>jax.value_and_grad</code> Graph</h2>
+      <p class="lead">
+        Because every Swarm solver exposes exact derivatives, we linked a <strong>12-zone 1D burning-plasma PDE core</strong>, the <strong>Swarm Tier-2 ORNL TRANSFORM HX</strong>, and the <strong>Swarm Tier-3 16-stage cryogenic distillation column</strong> end-to-end (<code>2.51e-7</code> relative gradient match vs. finite differences). Toggle between the three verified operating points below:
+      </p>
+
+      <div class="lab-box">
+        <div class="lab-header">
+          <div class="btn-group" role="group" aria-label="Co-design operating point selector">
+            <button type="button" class="seg-btn" id="cd-nominal" aria-pressed="false">1. Nominal Midpoint (1 eval)</button>
+            <button type="button" class="seg-btn" id="cd-nelder" aria-pressed="false">2. Nelder–Mead (60 evals)</button>
+            <button type="button" class="seg-btn" id="cd-lbfgs" aria-pressed="true">3. Exact-Grad L-BFGS-B (59 evals)</button>
+          </div>
+          <span class="tag pass" id="cd-badge">FEASIBLE · OPTIMAL</span>
+        </div>
+
+        <div class="gauge-grid" id="cd-gauges"></div>
+
+        <div class="grid-2-asym" style="margin-block-start:1rem;">
+          <div>
+            <h3 style="font-size:0.95rem; margin-block-end:0.65rem;">6 Coupled Whole-Plant Decision Variables</h3>
+            <div class="dial-list" id="cd-dials"></div>
+          </div>
+          <div class="callout" id="cd-summary" style="margin:0;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 6: ROADMAP & CAVEATS ==================== -->
+    <section class="section" id="roadmap" data-slide="6. Roadmap & Caveats">
+      <div class="eyebrow">06 · Completion Status, Honest Caveats &amp; Collaboration Path</div>
+      <h2>All Five Phases Verified — What Worked, What Needs Care, and What's Next</h2>
+
+      <div tabindex="0" role="region" aria-labelledby="roadmap-caption" class="table-wrapper">
+        <table>
+          <caption id="roadmap-caption">End-to-End Campaign Verification Summary (UVA Rivanna GPU Cluster)</caption>
+          <thead>
+            <tr>
+              <th>Phase</th>
+              <th>Deliverables</th>
+              <th>Verified Outcome</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Phase 0</th>
+              <td data-label="Deliverables">Containerized omc 1.27.1, Rumoca 0.10.4, JAX CUDA 12, 5-stage <code>smoke_pipeline.py</code></td>
+              <td data-label="Verified Outcome">A40 (job 23373343): 1k stiff runs in 1.34 s; omc 2.65e-10; Adam loss 492.8 → -17.6</td>
+              <td data-label="Status"><span class="tag pass">Done</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Phase 1</th>
+              <td data-label="Deliverables">3-Tier Non-Smooth / DAE Benchmark Suite &amp; Anti-Cheat Grader</td>
+              <td data-label="Verified Outcome">RTX A6000 (job 23379646): Rumoca fails 3/3; all cheat probes score 0.0; Tier 3 18.7× faster</td>
+              <td data-label="Status"><span class="tag pass">Done</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Phase 2</th>
+              <td data-label="Deliverables">Standalone layout, GPU-pinned <code>ShellRunner.gpu_sets</code>, <code>--network none</code> sandbox</td>
+              <td data-label="Verified Outcome">A100-80GB (job 23380990): <code>RUN_SELFTEST_OK</code> across Tiers 1–3; Tier 3 43.4 ms / 1k</td>
+              <td data-label="Status"><span class="tag pass">Done</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Phase 3</th>
+              <td data-label="Deliverables">20-swarm multi-generation <code>meshevolve</code> + cross-task transfer</td>
+              <td data-label="Verified Outcome">A100-40GB (job 23388961, $9.69): 10/20 passed; peaks 10.0/10 (7.8 ms, 165×) &amp; 8.0/10 (42.8 ms)</td>
+              <td data-label="Status"><span class="tag pass">Done</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Phase 4</th>
+              <td data-label="Deliverables">GPU RL vs SHAC/BPTT, &lt; 1 ms NumPy MLP distillation, 3-solver co-design</td>
+              <td data-label="Verified Outcome">A100-40GB (job 23390494): 1.024M PPO ep in 6.75 s; 17.47 µs p99.9 CPU MLP; 172.7 MWe feasible</td>
+              <td data-label="Status"><span class="tag pass">Done</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid-2" style="margin-block-start:1.25rem;">
+        <div class="card">
+          <h3>Empirical Caveats From Phase 3–4</h3>
+          <ul style="margin:0.4rem 0 0; padding-inline-start:1.2rem; font-size:0.9rem; color:var(--ink-muted);">
+            <li><strong>Shared-GPU XLA Lock Contention:</strong> Sharing one GPU across 3 concurrent swarms under a 60-min wall limit stalled peers during 200–500 s XLA compiles. Moving to dedicated GPUs (<code>--gres=gpu:3</code>) eliminates this cleanly.</li>
+            <li><strong>Small Per-Gen Sample Size:</strong> 2+1 swarms/gen showed strong pass-rate lifts (0/3 → 3/3 on Tier 3, 6/6 on Tier 2) but carries variance (higher chatter in Tier 3 Gen-2 lessons yielded conservative step counts vs. control). Larger populations (4+2) will tighten statistical bounds.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Next Opportunities for ORNL &amp; Fusion Collaboration</h3>
+          <ul style="margin:0.4rem 0 0; padding-inline-start:1.2rem; font-size:0.9rem; color:var(--ink-muted);">
+            <li><strong>Full-Plant Multi-Loop TRANSFORM Assemblies:</strong> Extending Tier 1–3 refactoring to coupled steam/sCO₂ power conversion balances, pumps, and 50–150 state cascades via multi-team <code>meshswarm --teams</code>.</li>
+            <li><strong>Upstream Compiler Co-Evolution:</strong> Continuously benchmarking new Rumoca releases against our Tier 1–3 suite while feeding verified GPU refactoring patterns back to the Modelica/JAX community.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="present-hud" id="present-hud" role="region" aria-label="Presentation controls">
+    <button type="button" class="icon-btn" id="slide-prev" aria-label="Previous section">← Prev</button>
+    <span id="slide-label" class="mono">1 / 7</span>
+    <button type="button" class="icon-btn" id="slide-next" aria-label="Next section">Next →</button>
+  </div>
+
+  <footer>
+    <span><strong>Modelica-to-GPU Research Showcase</strong> · <code>meshswarm</code> &amp; <code>meshevolve</code></span>
+    <span>All metrics verified on UVA Rivanna GPUs (Jobs 23373343, 23379646, 23380990, 23388961, 23390494)</span>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
