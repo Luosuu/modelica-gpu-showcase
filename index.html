@@ -853,6 +853,35 @@
         The same verification-gated GPU digital-twin paradigm now extends from <strong>ORNL Modelica (<code>TRANSFORM</code>)</strong> to an untouched compiled C++ DOE nuclear code: <strong>Idaho National Laboratory's <code>TMAP8</code> / MOOSE</strong> 11-subsystem pulsed tritium fuel cycle for a <strong>505.6 MWf ARC-class fusion power plant</strong> (<em>Meschini et al., Nuclear Fusion 63, 2023</em>). Swarms build a differentiable 64-bit JAX Backward-Euler twin to explore <strong>115,456</strong> pulsed 3-year trajectories on GPU, then verify their 15-parameter design directly against untouched <code>tmap8-opt -i fuel_cycle.i</code> across 5 stress scenarios.
       </p>
 
+      <!-- 3D INTERACTIVE DOE INL TMAP8 ARC 11-SUBSYSTEM PLANT -->
+      <div class="arch-stage" id="arc-arch-stage">
+        <div class="arch-toolbar">
+          <div>
+            <div class="eyebrow" style="margin:0;">Interactive 3D ARC Plant · Live-Linked to Safety Gates &amp; Sliders Below</div>
+            <h3 style="margin:0.15rem 0 0; font-size:1rem;">DOE INL <code>TMAP8</code> 11-Subsystem Pulsed Fusion Fuel Cycle (505.6 MWf)</h3>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="icon-btn" id="arc-pause-btn">Pause</button>
+          </div>
+        </div>
+
+        <div class="scene3d-shell" id="arc3d-shell">
+          <div class="plant3d-viewport" id="arc3d-viewport">
+            <div class="plant3d-hud-top" role="group" aria-label="3D ARC plant camera presets">
+              <button type="button" class="cam-pill" data-arccam="full" aria-pressed="true">Full 11-Unit Plant</button>
+              <button type="button" class="cam-pill" data-arccam="blanket" aria-pressed="false">ARC FLiBe Blanket</button>
+              <button type="button" class="cam-pill" data-arccam="tes_hx" aria-pressed="false">TES + HX (100 mg Cap)</button>
+              <button type="button" class="cam-pill" data-arccam="exhaust" aria-pressed="false">Cryopumps / FCU / ISS</button>
+              <button type="button" class="cam-pill" data-arccam="storage" aria-pressed="false">Storage Vault T₁₀</button>
+            </div>
+            <div class="plant3d-labels"></div>
+            <div class="plant3d-hud-hint">Drag to orbit 360° · Red glow = DOE safety / power veto</div>
+          </div>
+        </div>
+
+        <div class="callout" id="arc3d-info" style="margin-block:0.85rem 0 0;"></div>
+      </div>
+
       <div class="grid-2" style="margin-block-end:1.2rem;">
         <div class="card">
           <h3>Why INL's Manual Baseline Fails DOE Safety Caps</h3>

@@ -1394,6 +1394,63 @@
 
   let arcActivePreset = "safe";
   let arcDesign = { ...ARC_PRESETS.safe.design };
+  let arc3dCtrl = null;
+  let arc3dPaused = prefersReduced;
+
+  const arcCamBtns = Array.from(document.querySelectorAll(".cam-pill[data-arccam]"));
+  const arcPauseBtn = document.getElementById("arc-pause-btn");
+  const arcInfoBox = document.getElementById("arc3d-info");
+  let arcSubInfoMap = null;
+
+  function renderArcSubsystemInfo(key) {
+    if (!arcInfoBox || !arcSubInfoMap || !arcSubInfoMap[key]) return;
+    const s = arcSubInfoMap[key];
+    arcInfoBox.innerHTML = `<strong>${s.title}</strong> (<code>${s.vars}</code>): ${s.plain} <span style="color:var(--ink-muted);">${s.physics}</span>`;
+    if (arc3dCtrl) arc3dCtrl.setSelected(key);
+    arcCamBtns.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.arccam === key)));
+  }
+
+  arcCamBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const k = btn.dataset.arccam;
+      arcCamBtns.forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+      if (arc3dCtrl) arc3dCtrl.flyTo(k);
+      if (k !== "full") renderArcSubsystemInfo(k);
+    });
+  });
+
+  if (arcPauseBtn) {
+    arcPauseBtn.textContent = arc3dPaused ? "Play" : "Pause";
+    arcPauseBtn.addEventListener("click", () => {
+      arc3dPaused = !arc3dPaused;
+      arcPauseBtn.textContent = arc3dPaused ? "Play" : "Pause";
+      if (arc3dCtrl) arc3dCtrl.setPaused(arc3dPaused);
+    });
+  }
+
+  import("./arc3d.js")
+    .then(({ initArc3D, ARC_SUBSYSTEM_INFO }) => {
+      arcSubInfoMap = ARC_SUBSYSTEM_INFO;
+      arc3dCtrl = initArc3D({
+        container: document.getElementById("arc3d-viewport"),
+        onSelectSubsystem: (k) => renderArcSubsystemInfo(k),
+        getTheme: getRenderedScheme,
+        isInitiallyPaused: arc3dPaused,
+      });
+      renderArcSubsystemInfo("tes_hx");
+      if (arc3dCtrl) {
+        const e = computeArcEcon(arcDesign);
+        arc3dCtrl.updateDesignState({
+          i0: arcDesign.initial_inventory,
+          eta2: arcDesign.eta_2,
+          af: arcDesign.AF_value,
+          reserveKg: e.reserveKg,
+          pNet: e.pNet,
+          presetKey: arcActivePreset,
+        });
+      }
+    })
+    .catch((err) => console.warn("ARC 3D load failed:", err));
 
   const arcSliders = {
     initial_inventory: document.getElementById("arc-i0"),
@@ -1442,6 +1499,16 @@
     const resOk = arcDesign.initial_inventory >= e.reserveKg;
     const presetVeto = arcActivePreset ? ARC_PRESETS[arcActivePreset].veto : null;
     const hardPass = i0Ok && netOk && resOk && !presetVeto;
+    if (arc3dCtrl) {
+      arc3dCtrl.updateDesignState({
+        i0: arcDesign.initial_inventory,
+        eta2: arcDesign.eta_2,
+        af: arcDesign.AF_value,
+        reserveKg: e.reserveKg,
+        pNet: e.pNet,
+        presetKey: arcActivePreset,
+      });
+    }
 
     document.getElementById("arc-gauges").innerHTML = `
       <div class="gauge-card ${netOk ? "ok" : "bad"}">
@@ -1572,5 +1639,6 @@
     drawRlChart();
     applyPipeStep();
     if (plant3dCtrl) plant3dCtrl.applyTheme(getRenderedScheme());
+    if (arc3dCtrl) arc3dCtrl.applyTheme(getRenderedScheme());
   }
 })();
