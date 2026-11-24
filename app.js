@@ -1373,6 +1373,147 @@
   Object.entries(cdButtons).forEach(([k, btn]) => btn.addEventListener("click", () => renderCodesign(k)));
   renderCodesign("lbfgs");
 
+  // ---------- 9B. Interactive Lab 5: DOE INL TMAP8 ARC 505.6 MWf Power-Balance Explorer ----------
+  const ARC_PRESETS = {
+    inl: {
+      name: "INL Meschini Baseline",
+      design: { initial_inventory: 1.14, resident_time_BB: 4500, resident_time_TES: 86400, eta_2: 0.70, resident_time_HX: 1000, resident_time_DS: 3600, resident_time_vacuum: 600, f_DIR: 0.50, resident_time_FCU: 585, resident_time_ISS: 22815, f_ISS_to_DS: 0.10, resident_time_membrane: 100, TBR_value: 1.067, AF_value: 0.75, eta_f: 0.25 },
+      veto: "VETOED (Score 0.0): Violates 4 DOE gates — startup I₀ = 1.14 kg (> 1.00 kg), active in-process tritium = 463 g (> 220 g), HX tritium = 310 / 537 mg (> 100 mg), and tbe_drop breaches 24-hour storage reserve."
+    },
+    corner: {
+      name: "Naive Corner-Pushing",
+      design: { initial_inventory: 0.30, resident_time_BB: 900, resident_time_TES: 3600, eta_2: 0.96, resident_time_HX: 300, resident_time_DS: 600, resident_time_vacuum: 120, f_DIR: 0.88, resident_time_FCU: 180, resident_time_ISS: 1800, f_ISS_to_DS: 0.02, resident_time_membrane: 30, TBR_value: 1.18, AF_value: 0.88, eta_f: 0.42 },
+      veto: "VETOED (Score 0.0): Pushing every residence time to its minimum blows up MHD pumping (77.0 MWe) and 11-subsystem tritium plant loads (63.7 MWe) → total parasitic load 202.2 MWe exceeds gross electric output (P_net = -35.2 MWe)!"
+    },
+    safe: {
+      name: "Conservative Hand-Tuned Safe Design",
+      design: { initial_inventory: 0.86, resident_time_BB: 7200, resident_time_TES: 54000, eta_2: 0.945, resident_time_HX: 380, resident_time_DS: 6500, resident_time_vacuum: 620, f_DIR: 0.62, resident_time_FCU: 560, resident_time_ISS: 8200, f_ISS_to_DS: 0.11, resident_time_membrane: 180, TBR_value: 1.074, AF_value: 0.79, eta_f: 0.29 },
+      veto: null
+    }
+  };
+
+  let arcActivePreset = "safe";
+  let arcDesign = { ...ARC_PRESETS.safe.design };
+
+  const arcSliders = {
+    initial_inventory: document.getElementById("arc-i0"),
+    eta_2: document.getElementById("arc-eta2"),
+    AF_value: document.getElementById("arc-af"),
+    TBR_value: document.getElementById("arc-tbr"),
+    f_DIR: document.getElementById("arc-fdir"),
+  };
+
+  function computeArcEcon(d) {
+    const P_FUS = 505.6, N_BURN = 8.99e-7;
+    const mN = 1.20 - 0.30 * (d.TBR_value - 1.06);
+    const pTh = P_FUS * (0.20 + 0.80 * mN);
+    const etaTh = 0.435 * (1.0 - 0.13 * Math.pow(1000.0 / d.resident_time_HX, 0.50));
+    const pGross = d.AF_value * pTh * etaTh;
+    const pCore = d.AF_value * (26.0 + 7.5 * Math.pow(d.eta_f / 0.25, 2.0)) + 2.4 / Math.max(0.06, 1.0 - d.AF_value);
+    const pPumps = 4.2 * Math.pow(4500.0 / d.resident_time_BB, 1.75) + 1.5 * Math.pow(1000.0 / d.resident_time_HX, 1.25);
+    const ntu = -Math.log(1.0 - d.eta_2);
+    const ntuNom = -Math.log(0.30);
+    const pTes = 0.85 * Math.pow(86400.0 / d.resident_time_TES, 0.65) * Math.pow(ntu / ntuNom, 1.35);
+    const pVac = 1.10 * Math.pow(600.0 / d.resident_time_vacuum, 1.15) + 2.80 * Math.pow(d.f_DIR, 2.4);
+    const pIss = 1.65 * Math.pow(22815.0 / d.resident_time_ISS, 0.70) * Math.pow(0.10 / d.f_ISS_to_DS, 0.60);
+    const pRest = 0.45 * Math.pow(585.0 / d.resident_time_FCU, 0.85) + 0.40 * Math.pow(3600.0 / d.resident_time_DS, 0.75) + 0.35 * Math.pow(100.0 / d.resident_time_membrane, 0.80);
+    const pPara = pCore + pPumps + pTes + pVac + pIss + pRest;
+    const pNet = pGross - pPara;
+    const pCap = 18.0 * d.initial_inventory + 40.0 * Math.pow(Math.max(0.0, d.TBR_value - 1.05), 1.6) + 2.2 * Math.pow(d.resident_time_HX / 1000.0, 0.85);
+    const jEcon = pNet - pCap;
+    const imp = 1.0 - 0.35 * Math.pow(Math.max(0.0, d.f_DIR - 0.45), 1.6);
+    const tbe = d.eta_f * 0.10 * imp;
+    const reserveKg = (N_BURN / tbe) * 0.25 * 86400.0 * d.AF_value;
+    const score = Math.max(0, Math.min(1, (jEcon - 72.0) / (102.0 - 72.0))) * 10.0;
+    return { pGross, pPara, pNet, pCap, jEcon, tbe, reserveKg, score };
+  }
+
+  function renderArcLab() {
+    if (!arcSliders.initial_inventory) return;
+    document.getElementById("arc-i0-out").textContent = `${arcDesign.initial_inventory.toFixed(2)} kg`;
+    document.getElementById("arc-eta2-out").textContent = arcDesign.eta_2.toFixed(3);
+    document.getElementById("arc-af-out").textContent = arcDesign.AF_value.toFixed(2);
+    document.getElementById("arc-tbr-out").textContent = arcDesign.TBR_value.toFixed(3);
+    document.getElementById("arc-fdir-out").textContent = arcDesign.f_DIR.toFixed(2);
+
+    const e = computeArcEcon(arcDesign);
+    const i0Ok = arcDesign.initial_inventory <= 1.00;
+    const netOk = e.pNet > 0;
+    const resOk = arcDesign.initial_inventory >= e.reserveKg;
+    const presetVeto = arcActivePreset ? ARC_PRESETS[arcActivePreset].veto : null;
+    const hardPass = i0Ok && netOk && resOk && !presetVeto;
+
+    document.getElementById("arc-gauges").innerHTML = `
+      <div class="gauge-card ${netOk ? "ok" : "bad"}">
+        <div class="gauge-label">Net Electric P_net</div>
+        <div class="gauge-num">${e.pNet.toFixed(1)} MWe</div>
+        <div class="gauge-status">Gross ${e.pGross.toFixed(1)} − Para ${e.pPara.toFixed(1)}</div>
+      </div>
+      <div class="gauge-card ${hardPass ? "ok" : "bad"}">
+        <div class="gauge-label">Levelized J_econ</div>
+        <div class="gauge-num">${e.jEcon.toFixed(2)} MWe</div>
+        <div class="gauge-status">Cap shadow: −${e.pCap.toFixed(1)} MWe</div>
+      </div>
+      <div class="gauge-card ${i0Ok ? "ok" : "bad"}">
+        <div class="gauge-label">Startup I₀ (≤ 1.00 kg)</div>
+        <div class="gauge-num">${arcDesign.initial_inventory.toFixed(2)} kg</div>
+        <div class="gauge-status">${i0Ok ? "Within scarce cap" : "EXCEEDS 1.00 kg CAP"}</div>
+      </div>
+      <div class="gauge-card ${resOk ? "ok" : "bad"}">
+        <div class="gauge-label">24h Outage Reserve</div>
+        <div class="gauge-num">${e.reserveKg.toFixed(3)} kg</div>
+        <div class="gauge-status">Eff. TBE = ${(e.tbe * 100).toFixed(2)}%</div>
+      </div>
+      <div class="gauge-card ${hardPass ? "ok" : "bad"}">
+        <div class="gauge-label">Economic Score</div>
+        <div class="gauge-num">${hardPass ? e.score.toFixed(2) + " / 10" : "0.0 (VETO)"}</div>
+        <div class="gauge-status">${hardPass ? "72–102 MWe scale" : "Hard DOE gate failed"}</div>
+      </div>`;
+
+    const noteEl = document.getElementById("arc-note");
+    if (presetVeto) {
+      noteEl.className = "callout plasma";
+      noteEl.innerHTML = `<strong>${ARC_PRESETS[arcActivePreset].name}:</strong> ${presetVeto}`;
+    } else if (!i0Ok || !netOk || !resOk) {
+      noteEl.className = "callout plasma";
+      noteEl.innerHTML = `<strong>Hard Gate Breached:</strong> ${!netOk ? "Parasitic loads exceed gross electric power (P_net ≤ 0)." : !i0Ok ? "Startup tritium exceeds the 1.00 kg DOE scarcity cap." : "Startup tritium sits below the 24-hour outage reserve floor."} Any breach collapses the external <code>tmap8-opt</code> oracle score to <strong>0.0</strong>.`;
+    } else {
+      noteEl.className = "callout emerald";
+      noteEl.innerHTML = `<strong>${arcActivePreset ? ARC_PRESETS[arcActivePreset].name : "Custom 15D Point"}:</strong> Clears startup tritium, positive net power, and 24h reserve floors (full 5-scenario 3-year pulsed verification runs via untouched <code>tmap8-opt -i fuel_cycle.i</code>; our GPU JAX reference optimizes 115,456 trajectories in parallel to push well beyond this conservative 4.45/10 baseline).`;
+    }
+  }
+
+  function applyArcPreset(key) {
+    arcActivePreset = key;
+    arcDesign = { ...ARC_PRESETS[key].design };
+    Object.entries(arcSliders).forEach(([k, el]) => { if (el) el.value = String(arcDesign[k]); });
+    [["inl", "arc-preset-inl"], ["corner", "arc-preset-corner"], ["safe", "arc-preset-safe"]].forEach(([k, id]) => {
+      const b = document.getElementById(id);
+      if (b) b.setAttribute("aria-pressed", String(k === key));
+    });
+    renderArcLab();
+  }
+
+  Object.entries(arcSliders).forEach(([k, el]) => {
+    if (!el) return;
+    el.addEventListener("input", () => {
+      arcActivePreset = null;
+      ["arc-preset-inl", "arc-preset-corner", "arc-preset-safe"].forEach((id) => {
+        const b = document.getElementById(id);
+        if (b) b.setAttribute("aria-pressed", "false");
+      });
+      arcDesign[k] = parseFloat(el.value);
+      renderArcLab();
+    });
+  });
+
+  if (document.getElementById("arc-preset-inl")) {
+    document.getElementById("arc-preset-inl").addEventListener("click", () => applyArcPreset("inl"));
+    document.getElementById("arc-preset-corner").addEventListener("click", () => applyArcPreset("corner"));
+    document.getElementById("arc-preset-safe").addEventListener("click", () => applyArcPreset("safe"));
+    applyArcPreset("safe");
+  }
+
   // ---------- 10. Presentation Slide-Jump Mode & Active Nav ----------
   const sections = Array.from(document.querySelectorAll("main > .section"));
   const navLinks = Array.from(document.querySelectorAll(".nav-links a"));

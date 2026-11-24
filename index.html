@@ -26,6 +26,7 @@
         <a href="#evolution">Phase 3</a>
         <a href="#control">Phase 4 RL</a>
         <a href="#codesign">Co-Design</a>
+        <a href="#tmap8">INL TMAP8</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
       <div class="header-actions">
@@ -45,7 +46,7 @@
     <section class="section hero" data-slide="Overview">
       <div class="hero-pills">
         <span class="pill pill-green">Phases 0–4 Verified · UVA Rivanna GPUs</span>
-        <span class="pill pill-blue">ORNL TRANSFORM · Fusion Fuel Cycle</span>
+        <span class="pill pill-blue">ORNL TRANSFORM + DOE INL TMAP8 ARC</span>
         <span class="pill pill-plasma">$9.69 Total Swarm LLM Cost</span>
       </div>
       <h1>Migrating &amp; Optimizing Industrial Modelica Models for GPUs with <code>meshswarm</code> &amp; <code>meshevolve</code></h1>
@@ -844,10 +845,80 @@
       </div>
     </section>
 
-    <!-- ==================== SECTION 6: ROADMAP & CAVEATS ==================== -->
-    <section class="section" id="roadmap" data-slide="6. Roadmap & Caveats">
-      <div class="eyebrow">06 · Completion Status, Honest Caveats &amp; Collaboration Path</div>
-      <h2>All Five Phases Verified — What Worked, What Needs Care, and What's Next</h2>
+    <!-- ==================== SECTION 6: DOE INL TMAP8 ARC-CLASS EXTENSION ==================== -->
+    <section class="section" id="tmap8" data-slide="6. DOE INL TMAP8 ARC">
+      <div class="eyebrow">06 · New Benchmark Horizon (Branch: feat/tmap8-arc-plant)</div>
+      <h2>Generalizing Beyond Modelica: DOE INL <code>TMAP8</code> / MOOSE ARC-Class Whole-Plant Optimization</h2>
+      <p class="lead">
+        The same verification-gated GPU digital-twin paradigm now extends from <strong>ORNL Modelica (<code>TRANSFORM</code>)</strong> to an untouched compiled C++ DOE nuclear code: <strong>Idaho National Laboratory's <code>TMAP8</code> / MOOSE</strong> 11-subsystem pulsed tritium fuel cycle for a <strong>505.6 MWf ARC-class fusion power plant</strong> (<em>Meschini et al., Nuclear Fusion 63, 2023</em>). Swarms build a differentiable 64-bit JAX Backward-Euler twin to explore <strong>115,456</strong> pulsed 3-year trajectories on GPU, then verify their 15-parameter design directly against untouched <code>tmap8-opt -i fuel_cycle.i</code> across 5 stress scenarios.
+      </p>
+
+      <div class="grid-2" style="margin-block-end:1.2rem;">
+        <div class="card">
+          <h3>Why INL's Manual Baseline Fails DOE Safety Caps</h3>
+          <ul style="margin:0.35rem 0 0; padding-inline-start:1.2rem; font-size:0.89rem; color:var(--ink-muted);">
+            <li><strong>Active In-Process Tritium:</strong> Peaks at <strong>463 g</strong> (violates the <strong>220 g</strong> DOE vulnerable tritium safety cap).</li>
+            <li><strong>Primary Heat Exchanger (<code>T_05_HX</code>):</strong> Reaches <strong>310 mg</strong> nominally and <strong>537 mg</strong> under TES fouling (violates the <strong>100 mg</strong> steam-loop permeation limit).</li>
+            <li><strong>Scarce Startup Inventory:</strong> Requires <strong>1.14 kg</strong> (exceeds the <strong>1.00 kg</strong> startup budget).</li>
+            <li><strong>Off-Normal Autonomy:</strong> Under a 20% plasma burn efficiency drop (<code>tbe_drop</code>), storage <code>T_10_storage</code> breaches the 24-hour outage reserve floor.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Untouched <code>tmap8-opt</code> 5-Scenario Oracle Architecture</h3>
+          <ul style="margin:0.35rem 0 0; padding-inline-start:1.2rem; font-size:0.89rem; color:var(--ink-muted);">
+            <li><strong>SHA256-Locked MOOSE Input:</strong> Untouched INL <code>fuel_cycle.i</code> (<code>1,200</code> explicit 1,800 s pulses over 25 days + 3-year trajectory per scenario, ~50 s CPU wall time).</li>
+            <li><strong>Unified GPU Container:</strong> Both <code>idaholab/tmap8</code> (<code>tmap8-opt</code>) and CUDA 64-bit JAX/Optax/Diffrax run inside one <code>--nv --containall</code> sandbox.</li>
+            <li><strong>5 Hard-Veto Scenarios:</strong> <code>nominal</code>, <code>tbe_drop</code> (-20%), <code>tes_fouling</code> (-18% η₂, 3× HX slip), <code>blanket_degraded</code> (-3.5% TBR, -15% AF), plus a <strong>hidden 5th held-out combined-jitter test</strong>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE LAB 5: Live ARC 505.6 MWf Economics & Trade-Off Explorer -->
+      <div class="lab-box">
+        <div class="lab-header">
+          <div>
+            <div class="eyebrow" style="margin:0;">Interactive Lab 5 · Exact ARC 505.6 MWf Power-Balance &amp; Capital Model (plant_spec.py)</div>
+            <h3 style="margin:0.2rem 0 0;">Explore the 15-Parameter Economic vs. Safety Trade-Off Landscape</h3>
+          </div>
+          <div class="btn-group" role="group" aria-label="TMAP8 ARC design presets">
+            <button type="button" class="seg-btn" id="arc-preset-inl" aria-pressed="false">INL Baseline (VETO 0.0)</button>
+            <button type="button" class="seg-btn" id="arc-preset-corner" aria-pressed="false">Naive Corner (VETO 0.0)</button>
+            <button type="button" class="seg-btn" id="arc-preset-safe" aria-pressed="true">Conservative Safe (4.45/10)</button>
+          </div>
+        </div>
+
+        <div class="controls-bar">
+          <div class="control-group">
+            <label for="arc-i0"><span>Startup Tritium I₀ (≤ 1.00 kg)</span><output id="arc-i0-out" for="arc-i0">0.86 kg</output></label>
+            <input type="range" id="arc-i0" min="0.25" max="1.30" step="0.01" value="0.86">
+          </div>
+          <div class="control-group">
+            <label for="arc-eta2"><span>TES Extraction η₂</span><output id="arc-eta2-out" for="arc-eta2">0.945</output></label>
+            <input type="range" id="arc-eta2" min="0.35" max="0.96" step="0.005" value="0.945">
+          </div>
+          <div class="control-group">
+            <label for="arc-af"><span>Pulsed Duty / Availability AF</span><output id="arc-af-out" for="arc-af">0.79</output></label>
+            <input type="range" id="arc-af" min="0.65" max="0.88" step="0.01" value="0.79">
+          </div>
+          <div class="control-group">
+            <label for="arc-tbr"><span>Breeding Ratio TBR</span><output id="arc-tbr-out" for="arc-tbr">1.074</output></label>
+            <input type="range" id="arc-tbr" min="1.02" max="1.18" step="0.002" value="1.074">
+          </div>
+          <div class="control-group">
+            <label for="arc-fdir"><span>Direct Internal Recycling f_DIR</span><output id="arc-fdir-out" for="arc-fdir">0.62</output></label>
+            <input type="range" id="arc-fdir" min="0.10" max="0.88" step="0.01" value="0.62">
+          </div>
+        </div>
+
+        <div class="gauge-grid" id="arc-gauges"></div>
+        <div class="callout" id="arc-note" style="margin-block:0.85rem 0;"></div>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 7: ROADMAP & CAVEATS ==================== -->
+    <section class="section" id="roadmap" data-slide="7. Roadmap & Caveats">
+      <div class="eyebrow">07 · Completion Status, Honest Caveats &amp; Collaboration Path</div>
+      <h2>Phases 0–4 Verified, Phase 5 (INL TMAP8) Underway</h2>
 
       <div tabindex="0" role="region" aria-labelledby="roadmap-caption" class="table-wrapper">
         <table>
@@ -890,6 +961,12 @@
               <td data-label="Deliverables">GPU RL vs SHAC/BPTT, &lt; 1 ms NumPy MLP distillation, 3-solver co-design</td>
               <td data-label="Verified Outcome">A100-40GB (job 23390494): 1.024M PPO ep in 6.75 s; 17.47 µs p99.9 CPU MLP; 172.7 MWe feasible</td>
               <td data-label="Status"><span class="tag pass">Done</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Phase 5 (New)</th>
+              <td data-label="Deliverables">DOE INL <code>TMAP8</code> / MOOSE ARC 505.6 MWf 15-param benchmark, 5-scenario oracle grader &amp; 115k-traj GPU JAX reference (<code>examples/tmap8_arc_plant/</code>)</td>
+              <td data-label="Verified Outcome">5/5 unit tests + SHA256 INL deck verified locally; Rivanna GPU Apptainer selftest &amp; swarm evolution ready</td>
+              <td data-label="Status"><span class="tag warn">In Progress</span></td>
             </tr>
           </tbody>
         </table>
