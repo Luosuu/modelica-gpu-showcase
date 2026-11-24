@@ -45,9 +45,9 @@
     <!-- ==================== HERO ==================== -->
     <section class="section hero" data-slide="Overview">
       <div class="hero-pills">
-        <span class="pill pill-green">Phases 0–4 Verified · UVA Rivanna GPUs</span>
+        <span class="pill pill-green">Phases 0–5 Verified · NVIDIA GPUs</span>
         <span class="pill pill-blue">ORNL TRANSFORM + DOE INL TMAP8 ARC</span>
-        <span class="pill pill-plasma">$9.69 Total Swarm LLM Cost</span>
+        <span class="pill pill-plasma">~156,000× TMAP8 GPU Speedup</span>
       </div>
       <h1>Migrating &amp; Optimizing Industrial Fusion Simulators for GPUs with <code>meshswarm</code> &amp; <code>meshevolve</code></h1>
       <p class="lead">
@@ -831,10 +831,10 @@
 
     <!-- ==================== SECTION 6: DOE INL TMAP8 ARC-CLASS EXTENSION ==================== -->
     <section class="section" id="tmap8" data-slide="6. DOE INL TMAP8 ARC">
-      <div class="eyebrow">06 · Phase 5 Horizon (Branch: feat/tmap8-arc-plant)</div>
+      <div class="eyebrow">06 · Phase 5 Verified on NVIDIA A40 (Jobs 23418030 · 23418230)</div>
       <h2>Beyond Modelica: DOE INL <code>TMAP8</code> / MOOSE ARC-Class Plant (505.6 MWf)</h2>
       <p class="lead">
-        Extending the GPU digital-twin paradigm to untouched compiled C++ <strong>INL <code>TMAP8</code> (MOOSE)</strong>—exploring <strong>115,456</strong> pulsed 3-year trajectories on GPU and validating against <code>tmap8-opt</code> across 5 stress scenarios.
+        GPU Backward-Euler twin evaluates <strong>115,456</strong> 3-year pulsed trajectories in <strong>24.4 s</strong> (<strong>~156,000×</strong> vs. 44.1 CPU days), reaching <strong>8.22/10</strong> on untouched INL C++—and an evolved Gen-2 swarm passes all 5 scenarios for <strong>$0.23</strong>.
       </p>
 
       <!-- 3D INTERACTIVE DOE INL TMAP8 ARC 11-SUBSYSTEM PLANT -->
@@ -867,10 +867,10 @@
       </div>
 
       <div class="hero-pills" style="margin-block:0.85rem;">
-        <span class="pill pill-plasma">Startup I₀ ≤ 1.00 kg (INL: 1.14 kg)</span>
-        <span class="pill pill-plasma">In-Process ≤ 220 g (INL: 463 g)</span>
-        <span class="pill pill-plasma">HX T_05 ≤ 100 mg (INL: 310–537 mg)</span>
-        <span class="pill pill-blue">5 Pulsed Scenarios · SHA256 fuel_cycle.i</span>
+        <span class="pill pill-green">GPU Twin: 8.22/10 · 96.7 MWe · 14.5 mg HX (-95%)</span>
+        <span class="pill pill-green">Swarm Gen-2: 2.71/10 · All 5 Scenarios ($0.23)</span>
+        <span class="pill pill-blue">~156,000× Speedup (24.4 s vs 44.1 d CPU)</span>
+        <span class="pill pill-plasma">INL Baseline: 0.0 (14 Vetoes · 463 g / 537 mg HX)</span>
       </div>
 
       <details class="primer-details" style="margin-block:0 1rem;">
@@ -897,7 +897,9 @@
           <div class="btn-group" role="group" aria-label="TMAP8 ARC design presets">
             <button type="button" class="seg-btn" id="arc-preset-inl" aria-pressed="false">INL Baseline (VETO 0.0)</button>
             <button type="button" class="seg-btn" id="arc-preset-corner" aria-pressed="false">Naive Corner (VETO 0.0)</button>
-            <button type="button" class="seg-btn" id="arc-preset-safe" aria-pressed="true">Conservative Safe (4.45/10)</button>
+            <button type="button" class="seg-btn" id="arc-preset-swarm" aria-pressed="false">Swarm Gen-2 (2.71/10 · $0.23)</button>
+            <button type="button" class="seg-btn" id="arc-preset-safe" aria-pressed="false">Safe Ref (4.45/10)</button>
+            <button type="button" class="seg-btn" id="arc-preset-jax" aria-pressed="true">GPU JAX Twin (8.22/10)</button>
           </div>
         </div>
 
@@ -932,7 +934,7 @@
     <!-- ==================== SECTION 7: ROADMAP & CAVEATS ==================== -->
     <section class="section" id="roadmap" data-slide="7. Roadmap & Caveats">
       <div class="eyebrow">07 · Completion Status, Honest Caveats &amp; Collaboration Path</div>
-      <h2>Phases 0–4 Verified, Phase 5 (INL TMAP8) Underway</h2>
+      <h2>All Six Phases Verified on NVIDIA GPUs (ORNL TRANSFORM + DOE INL TMAP8)</h2>
 
       <div tabindex="0" role="region" aria-labelledby="roadmap-caption" class="table-wrapper">
         <table>
@@ -977,10 +979,10 @@
               <td data-label="Status"><span class="tag pass">Done</span></td>
             </tr>
             <tr>
-              <th scope="row">Phase 5 (New)</th>
-              <td data-label="Deliverables">DOE INL <code>TMAP8</code> / MOOSE ARC 505.6 MWf 15-param benchmark, 5-scenario oracle grader &amp; 115k-traj GPU JAX reference (<code>examples/tmap8_arc_plant/</code>)</td>
-              <td data-label="Verified Outcome">5/5 unit tests + SHA256 INL deck verified locally; Rivanna GPU Apptainer selftest &amp; swarm evolution ready</td>
-              <td data-label="Status"><span class="tag warn">In Progress</span></td>
+              <th scope="row">Phase 5</th>
+              <td data-label="Deliverables">DOE INL <code>TMAP8</code> / MOOSE ARC 505.6 MWf 15-param benchmark, 5-scenario C++ oracle &amp; GPU twin + swarm campaign</td>
+              <td data-label="Verified Outcome">A40 verified (jobs 23418030/23418230): 115,456 trajs in 24.4 s (~156,000× CPU), 8.22/10 (96.7 MWe, -95.3% HX T); Gen-2 swarm passed all 5 scenarios (2.71/10, $0.23)</td>
+              <td data-label="Status"><span class="tag pass">Done</span></td>
             </tr>
           </tbody>
         </table>

@@ -1380,22 +1380,35 @@
     inl: {
       name: "INL Meschini Baseline",
       design: { initial_inventory: 1.14, resident_time_BB: 4500, resident_time_TES: 86400, eta_2: 0.70, resident_time_HX: 1000, resident_time_DS: 3600, resident_time_vacuum: 600, f_DIR: 0.50, resident_time_FCU: 585, resident_time_ISS: 22815, f_ISS_to_DS: 0.10, resident_time_membrane: 100, TBR_value: 1.067, AF_value: 0.75, eta_f: 0.25 },
-      veto: "VETOED (Score 0.0): Violates 4 DOE gates — startup I₀ = 1.14 kg (> 1.00 kg), active in-process tritium = 463 g (> 220 g), HX tritium = 310 / 537 mg (> 100 mg), and tbe_drop breaches 24-hour storage reserve."
+      veto: "VETOED (Score 0.0 · 14 violations): Violates 4 DOE gates on untouched INL tmap8-opt — startup I₀ = 1.14 kg (> 1.00 kg), active in-process tritium = 462.7 g (> 220 g), HX tritium = 310.4 / 537.0 mg (> 100 mg), and tbe_drop breaches the 24-hour reserve (0.601 < 0.621 kg)."
     },
     corner: {
       name: "Naive Corner-Pushing",
       design: { initial_inventory: 0.30, resident_time_BB: 900, resident_time_TES: 3600, eta_2: 0.96, resident_time_HX: 300, resident_time_DS: 600, resident_time_vacuum: 120, f_DIR: 0.88, resident_time_FCU: 180, resident_time_ISS: 1800, f_ISS_to_DS: 0.02, resident_time_membrane: 30, TBR_value: 1.18, AF_value: 0.88, eta_f: 0.42 },
-      veto: "VETOED (Score 0.0): Pushing every residence time to its minimum blows up MHD pumping (77.0 MWe) and 11-subsystem tritium plant loads (63.7 MWe) → total parasitic load 202.2 MWe exceeds gross electric output (P_net = -35.2 MWe)!"
+      veto: "VETOED (Score 0.0 · 6 violations): Pushing every residence time to its minimum blows up MHD pumping (77.0 MWe) and 11-subsystem tritium plant loads (63.7 MWe) → total parasitic load 202.2 MWe exceeds gross electric output (P_net = −35.2 MWe)!"
+    },
+    swarm: {
+      name: "Autonomous meshevolve Gen-2 Winner ($0.23)",
+      design: { initial_inventory: 1.00, resident_time_BB: 4500, resident_time_TES: 65000, eta_2: 0.95, resident_time_HX: 420, resident_time_DS: 3600, resident_time_vacuum: 600, f_DIR: 0.40, resident_time_FCU: 585, resident_time_ISS: 6000, f_ISS_to_DS: 0.10, resident_time_membrane: 100, TBR_value: 1.10, AF_value: 0.82, eta_f: 0.36 },
+      veto: null,
+      verifiedNote: "VERIFIED PASS (2.71 / 10 across all 5 untouched INL C++ scenarios · $0.23 LLM spend): Evolved autonomously from Gen-1 Reviewer lessons (while lesson-free control stayed 0.0). Cuts active tritium 64.7% (462.7 → 163.2 g), nominal HX 94.2% (310.4 → 18.0 mg), clears fouling (97.05 ≤ 100 mg) & hidden jitter (52.62 mg), and doubles tritium in 0.56 yr."
     },
     safe: {
-      name: "Conservative Hand-Tuned Safe Design",
+      name: "Conservative Hand-Tuned Safe Reference",
       design: { initial_inventory: 0.86, resident_time_BB: 7200, resident_time_TES: 54000, eta_2: 0.945, resident_time_HX: 380, resident_time_DS: 6500, resident_time_vacuum: 620, f_DIR: 0.62, resident_time_FCU: 560, resident_time_ISS: 8200, f_ISS_to_DS: 0.11, resident_time_membrane: 180, TBR_value: 1.074, AF_value: 0.79, eta_f: 0.29 },
-      veto: null
+      veto: null,
+      verifiedNote: "VERIFIED PASS (4.45 / 10 across all 5 untouched INL C++ scenarios · 47.2 s CPU grade): Cuts active tritium to 164.1 g (−64.5%) and HX to 17.0 mg (−94.5%) with 0.71 yr doubling, leaving +11.3 MWe of levelized economic headroom that the GPU JAX twin recovers."
+    },
+    jax: {
+      name: "GPU JAX Backward-Euler Twin (115,456 trajs in 24.4 s)",
+      design: { initial_inventory: 0.889, resident_time_BB: 10200, resident_time_TES: 82000, eta_2: 0.955, resident_time_HX: 444.5, resident_time_DS: 7200, resident_time_vacuum: 720, f_DIR: 0.55, resident_time_FCU: 680, resident_time_ISS: 11500, f_ISS_to_DS: 0.13, resident_time_membrane: 220, TBR_value: 1.066, AF_value: 0.85, eta_f: 0.305 },
+      veto: null,
+      verifiedNote: "VERIFIED PASS (8.22 / 10 across all 5 untouched INL C++ scenarios · ~156,000× speedup vs. 44.1 CPU days): Evaluated 115,456 3-year pulsed trajectories + exact 15D gradients in 24.4 s on 1× NVIDIA A40. Achieves 113.8 MWe net / 96.7 MWe J_econ, slashes startup tritium −22% (0.889 kg), active T −59.5% (187.5 g), HX −95.3% (14.5 mg), and doubles 1.88× faster (0.75 yr)."
     }
   };
 
-  let arcActivePreset = "safe";
-  let arcDesign = { ...ARC_PRESETS.safe.design };
+  let arcActivePreset = "jax";
+  let arcDesign = { ...ARC_PRESETS.jax.design };
   let arc3dCtrl = null;
   let arc3dPaused = prefersReduced;
 
@@ -1546,17 +1559,28 @@
     } else if (!i0Ok || !netOk || !resOk) {
       noteEl.className = "callout plasma";
       noteEl.innerHTML = `<strong>Hard Gate Breached:</strong> ${!netOk ? "Parasitic loads exceed gross electric power (P_net ≤ 0)." : !i0Ok ? "Startup tritium exceeds the 1.00 kg DOE scarcity cap." : "Startup tritium sits below the 24-hour outage reserve floor."} Any breach collapses the external <code>tmap8-opt</code> oracle score to <strong>0.0</strong>.`;
+    } else if (arcActivePreset && ARC_PRESETS[arcActivePreset].verifiedNote) {
+      noteEl.className = "callout emerald";
+      noteEl.innerHTML = `<strong>${ARC_PRESETS[arcActivePreset].name}:</strong> ${ARC_PRESETS[arcActivePreset].verifiedNote}`;
     } else {
       noteEl.className = "callout emerald";
-      noteEl.innerHTML = `<strong>${arcActivePreset ? ARC_PRESETS[arcActivePreset].name : "Custom 15D Point"}:</strong> Clears startup tritium, positive net power, and 24h reserve floors (full 5-scenario 3-year pulsed verification runs via untouched <code>tmap8-opt -i fuel_cycle.i</code>; our GPU JAX reference optimizes 115,456 trajectories in parallel to push well beyond this conservative 4.45/10 baseline).`;
+      noteEl.innerHTML = `<strong>Custom 15D Point:</strong> Clears startup tritium (≤ 1.00 kg), positive net power, and 24h reserve floors (full 5-scenario 3-year pulsed verification runs via untouched INL <code>tmap8-opt -i fuel_cycle.i</code> across 12,470 MOOSE steps).`;
     }
   }
+
+  const ARC_PRESET_BUTTONS = [
+    ["inl", "arc-preset-inl"],
+    ["corner", "arc-preset-corner"],
+    ["swarm", "arc-preset-swarm"],
+    ["safe", "arc-preset-safe"],
+    ["jax", "arc-preset-jax"],
+  ];
 
   function applyArcPreset(key) {
     arcActivePreset = key;
     arcDesign = { ...ARC_PRESETS[key].design };
     Object.entries(arcSliders).forEach(([k, el]) => { if (el) el.value = String(arcDesign[k]); });
-    [["inl", "arc-preset-inl"], ["corner", "arc-preset-corner"], ["safe", "arc-preset-safe"]].forEach(([k, id]) => {
+    ARC_PRESET_BUTTONS.forEach(([k, id]) => {
       const b = document.getElementById(id);
       if (b) b.setAttribute("aria-pressed", String(k === key));
     });
@@ -1567,7 +1591,7 @@
     if (!el) return;
     el.addEventListener("input", () => {
       arcActivePreset = null;
-      ["arc-preset-inl", "arc-preset-corner", "arc-preset-safe"].forEach((id) => {
+      ARC_PRESET_BUTTONS.forEach(([, id]) => {
         const b = document.getElementById(id);
         if (b) b.setAttribute("aria-pressed", "false");
       });
@@ -1577,10 +1601,11 @@
   });
 
   if (document.getElementById("arc-preset-inl")) {
-    document.getElementById("arc-preset-inl").addEventListener("click", () => applyArcPreset("inl"));
-    document.getElementById("arc-preset-corner").addEventListener("click", () => applyArcPreset("corner"));
-    document.getElementById("arc-preset-safe").addEventListener("click", () => applyArcPreset("safe"));
-    applyArcPreset("safe");
+    ARC_PRESET_BUTTONS.forEach(([k, id]) => {
+      const b = document.getElementById(id);
+      if (b) b.addEventListener("click", () => applyArcPreset(k));
+    });
+    applyArcPreset("jax");
   }
 
   // ---------- 10. Presentation Slide-Jump Mode & Active Nav ----------
