@@ -11,9 +11,9 @@ window.RESEARCH_DATA = {
       title: "1D Burning Plasma Core",
       subtitle: "D–T Fusion Heat Source (Phase 4)",
       color: "#d9532f",
-      analogy: "Think of this as the furnace: deuterium and tritium nuclei fuse at ~35 keV (~400 million °C), releasing 14.1 MeV neutrons that stream outward into the blanket walls.",
-      engineering: "12-zone 1D radial diffusive energy & particle PDE with Bosch–Hale D–T reactivity, alpha self-heating, bremsstrahlung radiation, and gyro-Bohm confinement degradation (400 RK4 steps over a 10 s flattop).",
-      challenge: "Must be coupled differentiably to downstream thermal-hydraulics and fuel purification so reducing auxiliary heating (P_aux) simultaneously balances fusion gain Q and blanket structural temperature.",
+      analogy: "The furnace: D–T fusion at ~35 keV sends 14.1 MeV neutrons into the blanket walls.",
+      engineering: "12-zone 1D radial diffusive PDE (Bosch–Hale reactivity, alpha heating, gyro-Bohm transport).",
+      challenge: "Needs exact gradients into downstream cooling & purification to co-optimize gain Q and wall temperature.",
       metrics: [
         { label: "Plasma Volume", value: "420 m³" },
         { label: "Co-Designed P_fus", value: "965.5 MW" },
@@ -23,12 +23,12 @@ window.RESEARCH_DATA = {
     {
       id: "tier1",
       step: "Stage 2 · Tier 1",
-      title: "PbLi Blanket & Non-Smooth Check Valve",
-      subtitle: "BlanketValveDAE (6 states + 2 algebraic)",
+      title: "PbLi Blanket & Check Valve",
+      subtitle: "BlanketValveDAE (6 ODE + 2 DAE)",
       color: "#b45309",
-      analogy: "Liquid lead-lithium (PbLi) metal flows around the reactor walls like car radiator coolant, carrying heat out while breeding new tritium fuel. One-way check valves stop backflow, and a pump pressure balance locks all loops together.",
-      engineering: "6 ODE states + 2 implicit algebraic DAE constraints with hard if/else check-valve kinks, stiff thermal/tritium modes, and molar tritium conservation.",
-      challenge: "Rumoca 0.10.4 fails with unsupported residual equations & event discontinuities. Hard if/else branches stall GPU warps and produce NaN/broken adjoint gradients (9.1e-4 FD failure in Gen 1).",
+      analogy: "Liquid lead-lithium (PbLi) coolant carries heat out and breeds tritium; a one-way check valve stops backflow.",
+      engineering: "6 stiff ODEs + 2 implicit algebraic DAE loops with a non-smooth check valve.",
+      challenge: "Rumoca 0.10.4 fails on residual DAEs & events; hard if/else stalls GPU warps and breaks adjoints.",
       metrics: [
         { label: "Rumoca 0.10.4", value: "FAIL" },
         { label: "Swarm Gen-3 Peak", value: "6.0 / 10" },
@@ -38,12 +38,12 @@ window.RESEARCH_DATA = {
     {
       id: "tier2",
       step: "Stage 3 · Tier 2",
-      title: "ORNL TRANSFORM PbLi/FLiBe Heat Exchanger",
-      subtitle: "TransformPbLiFLiBeHX (15 states + Sieverts Permeator)",
+      title: "ORNL TRANSFORM PbLi/FLiBe HX",
+      subtitle: "TransformPbLiFLiBeHX (15 ODE + Permeator)",
       color: "#1a5fb4",
-      analogy: "A counter-current radiator where hot liquid metal (PbLi) warms a secondary molten salt loop (FLiBe) to drive electricity turbines, while a vacuum membrane extracts tritium gas from the coolant.",
-      engineering: "Real multi-package ORNL TRANSFORM Simple_HX (nV = 6 counter-current zones, cv ≠ cp enthalpy/internal-energy semantics, regStep low-flow limiters) coupled to a nonlinear Arrhenius/Sieverts cubic permeator.",
-      challenge: "Rumoca 0.10.4 fails 0/9 on TRANSFORM-UnitTests. Our Swarm unpacked exact semantics via omc instantiateModel, solved the cubic permeator with Newton + @jax.custom_jvp, and replaced adaptive Rosenbrock with 100-step RK4.",
+      analogy: "A 6-zone counter-current radiator transferring PbLi heat to FLiBe molten salt while a vacuum membrane extracts tritium.",
+      engineering: "Real ORNL TRANSFORM Simple_HX (cv ≠ cp, regStep limiters) + cubic Sieverts permeator.",
+      challenge: "Rumoca fails 0/9 on TRANSFORM; Swarm unpacked exact semantics, solved Sieverts via Newton + @jax.custom_jvp, and hit 165× speedup.",
       metrics: [
         { label: "Swarm Gen-2 Peak", value: "10.0 / 10" },
         { label: "1k-Fwd + 64-Grad", value: "7.8 ms + 17.5 ms" },
@@ -53,12 +53,12 @@ window.RESEARCH_DATA = {
     {
       id: "tier3",
       step: "Stage 4 · Tier 3",
-      title: "16-Stage Cryogenic H₂/HD/T₂ Distillation",
-      subtitle: "CryoHDTColumn16 (32 stiff ODE + 32 algebraic)",
+      title: "16-Stage Cryogenic H₂/HD/T₂ Column",
+      subtitle: "CryoHDTColumn16 (32 ODE + 32 DAE)",
       color: "#157a4c",
-      analogy: "An ultra-cold (~24 K) 16-tray separation tower that sorts hydrogen isotopes by boiling point—sending light H₂ out the top and delivering ≥ 99.97% pure tritium (T₂) from the bottom back to refuel the plasma.",
-      engineering: "32 stiff species states coupled to 32 tray equilibrium relations (Raoult/Antoine vapor pressures, nested condenser/reboiler splits). Naive dense O(N³) Jacobians spill GPU registers.",
-      challenge: "Requires structure-aware tridiagonal/banded linear solves and @jax.custom_jvp (since Rosenbrock solvers call jacfwd inside reverse replay, breaking @jax.custom_vjp).",
+      analogy: "A 24 K 16-tray tower sorting hydrogen isotopes by boiling point—returning ≥ 99.97% pure T₂ fuel to the core.",
+      engineering: "32 stiff species ODEs + 32 tray equilibrium relations (Raoult/Antoine).",
+      challenge: "Dense O(N³) Jacobians spill GPU registers; requires banded scans + @jax.custom_jvp.",
       metrics: [
         { label: "Swarm Gen-2 Peak", value: "8.0 / 10" },
         { label: "1k-Fwd / Combined", value: "42.8 ms / 0.175 s" },
@@ -151,7 +151,7 @@ window.RESEARCH_DATA = {
         refTime: 1.34,
         refScore: 5.0,
         refLabel: "Phase 0 Smoke Ref (1.34 s fwd)",
-        takeaway: "Gen 1 failed closure FD (9.1e-4) due to an unsmoothed valve kink; Gen 2 hit 240 s adaptive solver timeouts. After reviewer lessons diagnosed smoothing width and fixed-step convergence, Gen 3 run-1 passed all 4 gates at 6.0/10 (0.843 s combined, omc_err 3.62e-8, drift 7.99e-15).",
+        takeaway: "Reviewer lessons fixed Gen 1–2 valve FD kinks & solver timeouts—lifting Gen 3 run-1 to 6.0/10 (0.843 s, omc 3.62e-8).",
         generations: [
           { gen: "Gen 1 (Seed)", run1: { score: 0, time: null, note: "Valve kink broke FD (9.1e-4)" }, run2: { score: 0, time: null, note: "Case 3 sign error (2.6e-2)" }, control: null, cost: 0.90 },
           { gen: "Gen 2", run1: { score: 0, time: null, note: "Timed out > 240 s" }, run2: { score: 0, time: null, note: "Left stub unmerged" }, control: { score: 0, time: null, note: "Timed out > 240 s" }, cost: 0.56 },
@@ -164,7 +164,7 @@ window.RESEARCH_DATA = {
         refTime: 4.18,
         refScore: 3.0,
         refLabel: "Hand-Written Adaptive Ref (4.18 s, 3.0/10)",
-        takeaway: "Cross-task lessons from Tier 1 yielded 6/6 gate-passing solvers on a real ORNL TRANSFORM model. Gen 2 run-1 profiled thermal eigenvalues, replaced adaptive Rosenbrock with a 100-step RK4 + Newton/custom_jvp kernel, and achieved 10.0/10 in 25.3 ms combined (7.8 ms 1k-fwd) — 165× faster than our hand-written reference!",
+        takeaway: "6/6 passed via cross-task lessons; Gen 2 run-1 hit 10.0/10 (7.8 ms fwd + 17.5 ms grad = 25.3 ms) — 165× faster than hand-written JAX.",
         generations: [
           { gen: "Gen 1 (Transfer)", run1: { score: 4.0, time: 3.4339, fwd: 2.9392, grad: 0.4947, omc: "3.05e-8", mass: "4.14e-15", note: "Passed all 4 gates" }, run2: { score: 9.0, time: 0.1072, fwd: 0.0413, grad: 0.0658, omc: "1.34e-8", mass: "1.78e-15", note: "150-step RK4 (41.3 ms fwd)" }, control: { score: 5.0, time: 1.4428, fwd: 1.2070, grad: 0.2358, omc: "3.11e-8", mass: "3.11e-15", note: "Adaptive solver" }, cost: 2.32 },
           { gen: "Gen 2", run1: { score: 10.0, time: 0.0253, fwd: 0.0078, grad: 0.0175, omc: "1.63e-7", mass: "1.63e-15", note: "100-step RK4 — 165× vs ref!" }, run2: { score: 5.0, time: 1.3292, fwd: 0.6658, grad: 0.6634, omc: "3.03e-8", mass: "3.55e-15", note: "Passed all 4 gates" }, control: { score: 7.0, time: 0.2628, fwd: 0.1311, grad: 0.1317, omc: "6.18e-8", mass: "1.48e-15", note: "Passed all 4 gates" }, cost: 2.92 }
@@ -176,7 +176,7 @@ window.RESEARCH_DATA = {
         refTime: 0.143,
         refScore: 8.0,
         refLabel: "Hand-Written Tridiagonal Scan Ref (0.143 s fwd)",
-        takeaway: "In Gen 1, 0/3 swarms passed (lesson swarms left prototypes in scratch/; control used @jax.custom_vjp which crashed forward-mode JVP). Reviewer lessons ('Deliverable first; ugly and green within 10–15 min' + @jax.custom_jvp) lifted Gen 2 to 3/3 passing, peaking at 8.0/10 (42.8 ms 1k-fwd, omc_err 5.18e-10).",
+        takeaway: "Gen 1 lessons ('Deliverable first' + @jax.custom_jvp) lifted Gen 2 from 0/3 to 3/3 passing, peaking at 8.0/10 (42.8 ms fwd).",
         generations: [
           { gen: "Gen 1 (Transfer)", run1: { score: 0, time: null, note: "Prototype left in scratch/" }, run2: { score: 0, time: null, note: "Prototype left in scratch/" }, control: { score: 0, time: null, note: "custom_vjp broke JVP check" }, cost: 0.79 },
           { gen: "Gen 2", run1: { score: 2.0, time: 8.0450, fwd: 5.2384, grad: 2.8066, omc: "1.51e-10", mass: "2.47e-15", note: "Passed; conservative step count" }, run2: { score: 5.0, time: 1.8634, fwd: 0.5512, grad: 1.3122, omc: "1.50e-10", mass: "3.86e-15", note: "Passed all 4 gates" }, control: { score: 8.0, time: 0.1749, fwd: 0.0428, grad: 0.1321, omc: "5.18e-10", mass: "2.01e-15", note: "42.8 ms fwd · 174.9 ms total" }, cost: 1.00 }
@@ -254,7 +254,7 @@ window.RESEARCH_DATA = {
           tone: "danger",
           setpoints: [0.315, 38.5, 85.0, 12.0, 1.90, 0.145],
           metrics: { p_net: 276.24, p_fus: 1377.98, q: 35.79, t_in_pbli: 1047.31, t2_out: 940.01, x_t2: 99.978, loss: 135209.9 },
-          summary: "Starting at the midpoint of all 6 bounds produces excessive fusion neutron power (1378 MW) at moderate PbLi flow (85 kg/s), pushing blanket PbLi inlet temperature to 1047.3 K — 82.3 K above the 965.0 K ferritic-steel structural limit."
+          summary: "Midpoint setpoints push PbLi inlet to 1047.3 K — +82.3 K over the 965.0 K ferritic-steel ceiling."
         },
         nelder: {
           label: "Gradient-Free Nelder–Mead",
@@ -264,7 +264,7 @@ window.RESEARCH_DATA = {
           tone: "danger",
           setpoints: [0.305, 38.7, 87.2, 12.1, 1.88, 0.145],
           metrics: { p_net: 250.85, p_fus: 1303.74, q: 33.69, t_in_pbli: 1037.01, t2_out: 936.33, x_t2: 99.978, loss: 103459.7 },
-          summary: "Without cross-solver derivatives, 60 simplex evaluations struggle to coordinate plasma fueling/heating against downstream blanket coolant flow. After burning the entire evaluation budget, PbLi inlet still sits at 1037.0 K (+72.0 K over limit)."
+          summary: "60 black-box simplex evaluations fail to coordinate core heating and blanket flow — still +72.0 K over limit."
         },
         lbfgs: {
           label: "3-Solver Exact-Grad L-BFGS-B",
@@ -274,7 +274,7 @@ window.RESEARCH_DATA = {
           tone: "success",
           setpoints: [0.2556, 12.9533, 123.5611, 17.7842, 1.4662, 0.145],
           metrics: { p_net: 172.66, p_fus: 965.52, q: 74.54, t_in_pbli: 964.70, t2_out: 899.75, x_t2: 99.979, loss: -171.71 },
-          summary: "Exact end-to-end jax.value_and_grad derivatives across Core → Blanket HX → Cryo Column simultaneously throttle P_aux to 12.95 MW (doubling plasma Q to 74.54), ramp PbLi/FLiBe flows (123.6 / 17.8 kg/s) to hold PbLi at 964.70 K (≤ 965 K), and cut cryo boilup to 1.466 mol/s while maintaining 99.979% T₂ purity."
+          summary: "End-to-end gradients cut P_aux to 12.95 MW (doubling Q to 74.54), ramp coolant flows to 964.7 K (≤ 965 K), and hold 99.979% T₂ purity."
         }
       }
     }

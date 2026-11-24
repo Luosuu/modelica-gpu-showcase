@@ -477,17 +477,19 @@
 
   // ---------- 3. Rumoca 4-Layer Stack ----------
   const stackGrid = document.getElementById("stack-grid");
-  DATA.stackLayers.forEach((L) => {
-    const card = document.createElement("article");
-    card.className = `stack-card${L.id === "swarm" ? " highlight" : ""}`;
-    card.innerHTML = `
-      <span class="stack-badge ${L.tone}">${L.layer} · ${L.badge}</span>
-      <h3 style="margin:0; font-size:0.98rem;">${L.name}</h3>
-      <div style="font-size:0.8rem; font-weight:650; color:var(--accent);">${L.role}</div>
-      <p style="margin:0.15rem 0 0; font-size:0.84rem; color:var(--ink-muted);">${L.what}</p>
-      <p style="margin:0.35rem 0 0; font-size:0.81rem; color:var(--ink); border-block-start:1px dashed var(--border); padding-block-start:0.4rem;">${L.whyNotAlone}</p>`;
-    stackGrid.appendChild(card);
-  });
+  if (stackGrid) {
+    DATA.stackLayers.forEach((L) => {
+      const card = document.createElement("article");
+      card.className = `stack-card${L.id === "swarm" ? " highlight" : ""}`;
+      card.innerHTML = `
+        <span class="stack-badge ${L.tone}">${L.layer} · ${L.badge}</span>
+        <h3 style="margin:0; font-size:0.98rem;">${L.name}</h3>
+        <div style="font-size:0.8rem; font-weight:650; color:var(--accent);">${L.role}</div>
+        <p style="margin:0.15rem 0 0; font-size:0.84rem; color:var(--ink-muted);">${L.what}</p>
+        <p style="margin:0.35rem 0 0; font-size:0.81rem; color:var(--ink); border-block-start:1px dashed var(--border); padding-block-start:0.4rem;">${L.whyNotAlone}</p>`;
+      stackGrid.appendChild(card);
+    });
+  }
 
   // ---------- 4. Interactive Lab 1: Check-Valve Smoothing & GPU Warp Divergence ----------
   const valveEpsInput = document.getElementById("valve-eps");

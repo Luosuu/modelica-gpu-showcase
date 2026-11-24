@@ -49,31 +49,31 @@
         <span class="pill pill-blue">ORNL TRANSFORM + DOE INL TMAP8 ARC</span>
         <span class="pill pill-plasma">$9.69 Total Swarm LLM Cost</span>
       </div>
-      <h1>Migrating &amp; Optimizing Industrial Modelica Models for GPUs with <code>meshswarm</code> &amp; <code>meshevolve</code></h1>
+      <h1>Migrating &amp; Optimizing Industrial Fusion Simulators for GPUs with <code>meshswarm</code> &amp; <code>meshevolve</code></h1>
       <p class="lead">
-        Legacy fusion thermal-hydraulics and chemical process models are written in <strong>Modelica</strong> and run one trajectory at a time on CPUs without gradients. We combine deterministic compilers (<strong>OpenModelica</strong> &amp; <strong>Rumoca</strong>) with verification-gated multi-agent swarms to produce differentiable <strong>JAX/GPU</strong> operators—unlocking <strong>165× faster solves</strong>, <strong>1,024,000-episode GPU RL in 6.75 s</strong>, <strong>&lt; 18 µs</strong> edge controllers, and coupled whole-plant co-design.
+        Turning serial CPU-bound <strong>Modelica (ORNL TRANSFORM)</strong> and <strong>DOE INL TMAP8 (MOOSE)</strong> fusion models into verified, differentiable <strong>JAX/GPU</strong> operators—for <strong>$9.69</strong> in swarm LLM cost.
       </p>
 
       <div class="kpi-grid">
         <div class="kpi-card" style="--card-accent: var(--accent);">
           <div class="kpi-val">165×</div>
-          <div class="kpi-title">ORNL TRANSFORM HX Speedup</div>
-          <div class="kpi-sub"><strong>7.8 ms</strong> / 1,000 runs + <strong>17.5 ms</strong> 64-grad (<code>25.3 ms</code> combined vs. <code>4.18 s</code> hand-written JAX ref, <code>10.0/10</code>).</div>
+          <div class="kpi-title">ORNL TRANSFORM HX</div>
+          <div class="kpi-sub"><code>7.8 ms</code> / 1k runs + <code>17.5 ms</code> 64-grad (<code>10.0/10</code> vs. <code>4.18 s</code> ref).</div>
         </div>
         <div class="kpi-card" style="--card-accent: var(--emerald);">
           <div class="kpi-val">151,690 ep/s</div>
-          <div class="kpi-title">Closed-Loop GPU RL (~39,000× CPU)</div>
-          <div class="kpi-sub"><strong>1,024,000</strong> 30-second fusion plant episodes in <strong>6.75 s</strong> on 1× A100; Differentiable SHAC achieves <strong>20× sample efficiency</strong>.</div>
+          <div class="kpi-title">GPU RL (~39,000× CPU)</div>
+          <div class="kpi-sub"><code>1.024M</code> 30s episodes in <code>6.75 s</code>; SHAC reaches <code>20×</code> sample efficiency.</div>
         </div>
         <div class="kpi-card" style="--card-accent: var(--amber);">
           <div class="kpi-val">17.47 µs</div>
-          <div class="kpi-title">p99.9 Deterministic CPU MLP</div>
-          <div class="kpi-sub">Distilled <strong>483-param</strong> standalone NumPy controller (<code>57.2×</code> under <code>1 ms</code> PLC ceiling, <code>2.2e-16</code> parity).</div>
+          <div class="kpi-title">p99.9 Edge CPU MLP</div>
+          <div class="kpi-sub"><strong>483-param</strong> NumPy controller (<code>57.2×</code> under <code>1 ms</code> PLC cap).</div>
         </div>
         <div class="kpi-card" style="--card-accent: var(--plasma);">
           <div class="kpi-val">172.7 MWe</div>
-          <div class="kpi-title">Feasible 3-Solver Co-Design</div>
-          <div class="kpi-sub">Resolved <strong>82.3 K</strong> PbLi violation in <strong>59 evals</strong> (<code>Q = 74.54</code>, <code>99.979% T₂</code>); gradient-free Nelder–Mead stayed infeasible.</div>
+          <div class="kpi-title">3-Solver Co-Design</div>
+          <div class="kpi-sub">Cleared <strong>82.3 K</strong> PbLi limit in 59 evals (<code>Q = 74.5</code>, <code>99.98% T₂</code>).</div>
         </div>
       </div>
 
@@ -102,10 +102,10 @@
 
     <!-- ==================== SECTION 1: BACKGROUND ==================== -->
     <section class="section" id="background" data-slide="1. Fusion Background">
-      <div class="eyebrow">01 · Background &amp; Problem Framing</div>
-      <h2>Why Fusion Plant Digital Twins Need GPUs &amp; Exact Gradients</h2>
+      <div class="eyebrow">01 · Fusion Plant Background</div>
+      <h2>From Serial CPU Simulators to Differentiable GPU Twins</h2>
       <p class="lead">
-        Designing a fusion pilot plant requires coordinating four tightly coupled physical subsystems—from a 400-million-°C plasma core down to a 24 K cryogenic distillation tower. Click any stage below to see what it does in plain terms, why legacy CPU Modelica bottlenecks it, and how our benchmark tiers capture it.
+        Orbit the 3D plant and click any subsystem—or toggle <strong>Backward <code>jax.grad</code></strong> to watch sensitivity gradients flow from turbine power back to the plasma core.
       </p>
 
       <div class="arch-stage" id="plant-arch-stage">
@@ -272,35 +272,25 @@
         <div>
           <div class="eyebrow" id="stage-eyebrow"></div>
           <h3 id="stage-title"></h3>
-          <p><strong>Plain-English Intuition:</strong> <span id="stage-analogy"></span></p>
-          <p><strong>Physics &amp; Model Structure:</strong> <span id="stage-eng"></span></p>
-          <p><strong>Why Direct GPU Export Fails:</strong> <span id="stage-challenge"></span></p>
+          <p style="margin:0.4rem 0;"><strong>In plain terms:</strong> <span id="stage-analogy"></span></p>
+          <p style="margin:0.4rem 0; color:var(--ink-muted); font-size:0.9rem;"><strong>Model:</strong> <span id="stage-eng"></span></p>
+          <p style="margin:0.4rem 0 0; font-size:0.9rem;"><strong>GPU barrier:</strong> <span id="stage-challenge"></span></p>
         </div>
         <div class="mini-metrics" id="stage-metrics"></div>
       </div>
 
-      <div class="grid-2" style="margin-block-start: 1.25rem;">
-        <div class="card">
-          <h3>Bottleneck 1 · Serial CPU Execution</h3>
-          <p style="margin:0; color: var(--ink-muted); font-size: 0.92rem;">
-            Traditional Modelica tools (OpenModelica <code>omc</code>, Dymola) compile to sequential C code running one trajectory at a time (~0.25–5 s per run). Sweeping 1,000 off-design uncertainties or training a 1,000,000-episode RL policy would take <strong>days to weeks</strong> on a CPU.
-          </p>
-        </div>
-        <div class="card">
-          <h3>Bottleneck 2 · Black-Box No-Gradient Optimization</h3>
-          <p style="margin:0; color: var(--ink-muted); font-size: 0.92rem;">
-            Legacy simulators are opaque black boxes: optimizing 6+ coupled plant variables or neural controller weights requires slow derivative-free search. Putting physics inside <strong>JAX</strong> enables both <strong>1,000×–100,000× GPU batching (<code>vmap</code>)</strong> and <strong>exact backpropagation (<code>jax.grad</code>)</strong>.
-          </p>
-        </div>
+      <div class="callout" style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.75rem;">
+        <span><strong>Legacy Modelica (CPU):</strong> Serial (~0.25–5 s/run), black-box, zero gradients.</span>
+        <span><strong>JAX / GPU Twin:</strong> 1k–1M parallel runs (<code>vmap</code>) + exact <code>jax.grad</code>.</span>
       </div>
     </section>
 
     <!-- ==================== SECTION 2: RUMOCA & WARP LAB ==================== -->
     <section class="section" id="rumoca" data-slide="2. Rumoca & GPU Lab">
-      <div class="eyebrow">02 · Compiler Boundaries &amp; GPU Physics Refactoring</div>
-      <h2>Complementary to Rumoca: Crossing the Four Industrial GPU Walls</h2>
+      <div class="eyebrow">02 · Rumoca Complementarity &amp; GPU Refactoring</div>
+      <h2>How <code>meshswarm</code> &amp; <code>meshevolve</code> Cross Industrial GPU Walls</h2>
       <p class="lead">
-        A common question is why multi-agent refactoring is needed when deterministic Modelica-to-JAX compilers like <strong>Rumoca</strong> exist. The answer is a clean division of labor: <strong>we use Rumoca inside the agent loop as our front-end compiler</strong>, and deploy <code>meshswarm</code>/<code>meshevolve</code> precisely where deterministic translation stops.
+        We invoke <strong>Rumoca</strong> as our front-end compiler and trigger <code>meshswarm</code> where deterministic export stops (<code>0/9</code> on <code>TRANSFORM</code>, <code>0/3</code> on Tiers 1–3).
       </p>
 
       <!-- ANIMATED MESHSWARM + MESHEVOLVE PIPELINE SIMULATOR -->
@@ -453,12 +443,6 @@
         </div>
       </div>
 
-      <div class="stack-grid" id="stack-grid"></div>
-
-      <div class="callout amber">
-        <strong>Empirical Boundary (<code>rumoca 0.10.4</code>):</strong> On clean, flat explicit ODEs, Rumoca exports fast, deterministic JAX. However, on industrial fusion models it scores <strong>0 / 9</strong> on <code>TRANSFORM-UnitTests</code> and <strong>0 / 3</strong> across our Tier 1–3 benchmarks—blocked by external library packages, implicit algebraic residual loops, hard <code>if/else</code> valve kinks, and GPU register-spilling dense Jacobians. As future Rumoca releases improve, our swarms immediately inherit those gains ("rising tide" partnership).
-      </div>
-
       <!-- INTERACTIVE LAB 1: Check-Valve Smoothing & Warp Divergence -->
       <div class="lab-box">
         <div class="lab-header">
@@ -494,9 +478,9 @@
             <canvas id="valve-canvas" width="640" height="300" aria-label="Check valve flow and gradient curve"></canvas>
           </div>
           <div>
-            <h3 style="font-size:0.96rem;">Simulated 32-Thread GPU Warp Execution</h3>
-            <p style="font-size:0.84rem; color:var(--ink-muted); margin:0 0 0.5rem;">
-              Each square is one parallel plant scenario running on the same GPU warp. Under hard <code>if/else</code>, threads on opposite sides of ΔP = 0 cannot execute simultaneously—the GPU serializes both branches.
+            <h3 style="font-size:0.96rem;">32-Thread GPU Warp Utilization</h3>
+            <p style="font-size:0.82rem; color:var(--ink-muted); margin:0 0 0.5rem;">
+              Hard <code>if/else</code> serializes threads straddling ΔP = 0; smooth softplus runs 100% fused.
             </p>
             <div class="warp-grid" id="warp-grid" aria-live="polite"></div>
             <div class="mini-metrics" style="margin-block-start:0.65rem; grid-template-columns: 1fr 1fr;">
@@ -557,10 +541,10 @@
 
     <!-- ==================== SECTION 3: VERIFICATION & PHASE 3 ==================== -->
     <section class="section" id="evolution" data-slide="3. Phase 3 Evolution">
-      <div class="eyebrow">03 · Anti-Reward-Hacking Grader &amp; Phase 3 Swarm Evolution</div>
-      <h2>20 Swarms, $9.69 Total Cost, and a 165× Breakthrough Over Hand-Written JAX</h2>
+      <div class="eyebrow">03 · Anti-Cheat Grader &amp; Phase 3 Evolution</div>
+      <h2>20 Swarms, $9.69 Total, and a 165× Speedup Over Hand-Written JAX</h2>
       <p class="lead">
-        Speed is worthless if a solver fakes accuracy or drops gradients. Every swarm candidate is graded inside an isolated <code>--network none</code> GPU container under a multiplicative 5-gate contract—failing any binary gate collapses the score to <strong>0.0</strong>. Click a gate to inspect its verification rule:
+        Graded in a <code>--network none</code> GPU container—failing any binary gate collapses score to <strong>0.0</strong>. Click a gate to inspect:
       </p>
 
       <div class="formula-strip" id="gate-strip" role="group" aria-label="Multiplicative verification gates">
@@ -703,10 +687,10 @@
 
     <!-- ==================== SECTION 4: PHASE 4 CONTROL & LIVE PHYSICS ==================== -->
     <section class="section" id="control" data-slide="4. Phase 4 Control & RL">
-      <div class="eyebrow">04 · Phase 4 Downstream Control &amp; Edge Distillation</div>
-      <h2>Live 15-State ORNL TRANSFORM Plant Sandbox &amp; 1,024,000-Episode GPU RL</h2>
+      <div class="eyebrow">04 · Phase 4 Closed-Loop Control &amp; Edge Distillation</div>
+      <h2>Live 15-State ORNL TRANSFORM Sandbox &amp; 1,024,000-Episode GPU RL</h2>
       <p class="lead">
-        To prove that Swarm-generated operators unlock workflows impossible in serial Modelica, we wrapped the winning <code>10.0/10</code> Tier-2 solver into a 30-second closed-loop control environment subject to fusion power ramps, ELM heat bursts, and partial primary coolant pump trips.
+        Live JS port of the Swarm's <code>10.0/10</code> Tier-2 solver under power ramps, ELMs, and pump trips—paired with verified A100 RL &amp; <code>&lt; 18 µs</code> CPU MLP benchmarks.
       </p>
 
       <!-- INTERACTIVE LAB 3: LIVE IN-BROWSER 15-STATE TRANSFORM PHYSICS SIMULATOR -->
@@ -782,16 +766,16 @@
           <div class="canvas-wrap">
             <canvas id="rl-canvas" width="600" height="275" aria-label="SHAC vs PPO learning curves on A100"></canvas>
           </div>
-          <p style="font-size:0.84rem; color:var(--ink-muted); margin:0.65rem 0 0;">
-            Backpropagating exact physics gradients gives <strong>SHAC/BPTT a 20× sample-efficiency edge</strong> (<code>51,200</code> ep in <code>5.09 s</code> → <code>1.37 K</code> RMSE), while fused GPU rollouts let <strong>PPO run 1,024,000 episodes in 6.75 s</strong> (<code>151,690 ep/s</code>, ~39,000× faster than ~74 h of serial <code>omc</code>).
+          <p style="font-size:0.82rem; color:var(--ink-muted); margin:0.55rem 0 0;">
+            <strong>SHAC/BPTT:</strong> 20× sample efficiency (<code>51.2k</code> ep, <code>5.09 s</code>, <code>1.37 K</code> RMSE) · <strong>GPU PPO:</strong> <code>1.024M</code> ep in <code>6.75 s</code> (~39,000× CPU).
           </p>
         </div>
 
         <div class="card">
           <div class="eyebrow">Real-Time PLC / Edge Deployment</div>
-          <h3>&lt; 1 ms Deterministic CPU MLP Distillation</h3>
-          <p style="font-size:0.88rem; color:var(--ink-muted); margin-block-start:0.2rem;">
-            Real fusion plant controllers cannot wait for a GPU optimizer every millisecond. We distilled exact differentiable MPC trajectories (30,720 state-action pairs) into a tiny standalone NumPy MLP:
+          <h3>&lt; 1 ms Deterministic CPU MLP</h3>
+          <p style="font-size:0.84rem; color:var(--ink-muted); margin:0.2rem 0 0.7rem;">
+            Distilled from 30,720 differentiable MPC pairs into standalone NumPy:
           </p>
           <div class="mini-metrics">
             <div class="mini-metric" style="border-inline-start-color: var(--accent);">
@@ -818,9 +802,9 @@
     <!-- ==================== SECTION 5: PHASE 4 CO-DESIGN ==================== -->
     <section class="section" id="codesign" data-slide="5. 3-Solver Co-Design">
       <div class="eyebrow">05 · End-to-End Whole-Plant Co-Design</div>
-      <h2>Coupling 3 Differentiable Solvers Inside One <code>jax.value_and_grad</code> Graph</h2>
+      <h2>Coupling 3 Differentiable Solvers in One <code>jax.value_and_grad</code> Graph</h2>
       <p class="lead">
-        Because every Swarm solver exposes exact derivatives, we linked a <strong>12-zone 1D burning-plasma PDE core</strong>, the <strong>Swarm Tier-2 ORNL TRANSFORM HX</strong>, and the <strong>Swarm Tier-3 16-stage cryogenic distillation column</strong> end-to-end (<code>2.51e-7</code> relative gradient match vs. finite differences). Toggle between the three verified operating points below:
+        1D Plasma Core + Swarm Tier-2 HX + Swarm Tier-3 Cryo Column coupled end-to-end (<code>2.51e-7</code> FD gradient match). Compare all three operating points:
       </p>
 
       <div class="lab-box">
@@ -847,10 +831,10 @@
 
     <!-- ==================== SECTION 6: DOE INL TMAP8 ARC-CLASS EXTENSION ==================== -->
     <section class="section" id="tmap8" data-slide="6. DOE INL TMAP8 ARC">
-      <div class="eyebrow">06 · New Benchmark Horizon (Branch: feat/tmap8-arc-plant)</div>
-      <h2>Generalizing Beyond Modelica: DOE INL <code>TMAP8</code> / MOOSE ARC-Class Whole-Plant Optimization</h2>
+      <div class="eyebrow">06 · Phase 5 Horizon (Branch: feat/tmap8-arc-plant)</div>
+      <h2>Beyond Modelica: DOE INL <code>TMAP8</code> / MOOSE ARC-Class Plant (505.6 MWf)</h2>
       <p class="lead">
-        The same verification-gated GPU digital-twin paradigm now extends from <strong>ORNL Modelica (<code>TRANSFORM</code>)</strong> to an untouched compiled C++ DOE nuclear code: <strong>Idaho National Laboratory's <code>TMAP8</code> / MOOSE</strong> 11-subsystem pulsed tritium fuel cycle for a <strong>505.6 MWf ARC-class fusion power plant</strong> (<em>Meschini et al., Nuclear Fusion 63, 2023</em>). Swarms build a differentiable 64-bit JAX Backward-Euler twin to explore <strong>115,456</strong> pulsed 3-year trajectories on GPU, then verify their 15-parameter design directly against untouched <code>tmap8-opt -i fuel_cycle.i</code> across 5 stress scenarios.
+        Extending the GPU digital-twin paradigm to untouched compiled C++ <strong>INL <code>TMAP8</code> (MOOSE)</strong>—exploring <strong>115,456</strong> pulsed 3-year trajectories on GPU and validating against <code>tmap8-opt</code> across 5 stress scenarios.
       </p>
 
       <!-- 3D INTERACTIVE DOE INL TMAP8 ARC 11-SUBSYSTEM PLANT -->
@@ -882,25 +866,26 @@
         <div class="callout" id="arc3d-info" style="margin-block:0.85rem 0 0;"></div>
       </div>
 
-      <div class="grid-2" style="margin-block-end:1.2rem;">
-        <div class="card">
-          <h3>Why INL's Manual Baseline Fails DOE Safety Caps</h3>
-          <ul style="margin:0.35rem 0 0; padding-inline-start:1.2rem; font-size:0.89rem; color:var(--ink-muted);">
-            <li><strong>Active In-Process Tritium:</strong> Peaks at <strong>463 g</strong> (violates the <strong>220 g</strong> DOE vulnerable tritium safety cap).</li>
-            <li><strong>Primary Heat Exchanger (<code>T_05_HX</code>):</strong> Reaches <strong>310 mg</strong> nominally and <strong>537 mg</strong> under TES fouling (violates the <strong>100 mg</strong> steam-loop permeation limit).</li>
-            <li><strong>Scarce Startup Inventory:</strong> Requires <strong>1.14 kg</strong> (exceeds the <strong>1.00 kg</strong> startup budget).</li>
-            <li><strong>Off-Normal Autonomy:</strong> Under a 20% plasma burn efficiency drop (<code>tbe_drop</code>), storage <code>T_10_storage</code> breaches the 24-hour outage reserve floor.</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>Untouched <code>tmap8-opt</code> 5-Scenario Oracle Architecture</h3>
-          <ul style="margin:0.35rem 0 0; padding-inline-start:1.2rem; font-size:0.89rem; color:var(--ink-muted);">
-            <li><strong>SHA256-Locked MOOSE Input:</strong> Untouched INL <code>fuel_cycle.i</code> (<code>1,200</code> explicit 1,800 s pulses over 25 days + 3-year trajectory per scenario, ~50 s CPU wall time).</li>
-            <li><strong>Unified GPU Container:</strong> Both <code>idaholab/tmap8</code> (<code>tmap8-opt</code>) and CUDA 64-bit JAX/Optax/Diffrax run inside one <code>--nv --containall</code> sandbox.</li>
-            <li><strong>5 Hard-Veto Scenarios:</strong> <code>nominal</code>, <code>tbe_drop</code> (-20%), <code>tes_fouling</code> (-18% η₂, 3× HX slip), <code>blanket_degraded</code> (-3.5% TBR, -15% AF), plus a <strong>hidden 5th held-out combined-jitter test</strong>.</li>
-          </ul>
-        </div>
+      <div class="hero-pills" style="margin-block:0.85rem;">
+        <span class="pill pill-plasma">Startup I₀ ≤ 1.00 kg (INL: 1.14 kg)</span>
+        <span class="pill pill-plasma">In-Process ≤ 220 g (INL: 463 g)</span>
+        <span class="pill pill-plasma">HX T_05 ≤ 100 mg (INL: 310–537 mg)</span>
+        <span class="pill pill-blue">5 Pulsed Scenarios · SHA256 fuel_cycle.i</span>
       </div>
+
+      <details class="primer-details" style="margin-block:0 1rem;">
+        <summary>Full DOE INL TMAP8 Oracle &amp; 5-Scenario Specification</summary>
+        <div class="glossary-grid">
+          <div class="glossary-item">
+            <strong>Untouched MOOSE Oracle</strong>
+            SHA256-locked INL <code>fuel_cycle.i</code> runs 1,200 explicit 1,800 s pulses (25 d) + 3-year trajectory (~50 s CPU/eval) inside a unified <code>--nv</code> Apptainer container with CUDA JAX.
+          </div>
+          <div class="glossary-item">
+            <strong>5 Zero-Multiplier Stress Tests</strong>
+            <code>nominal</code>, <code>tbe_drop</code> (-20%), <code>tes_fouling</code> (-18% η₂, 3× HX slip), <code>blanket_degraded</code> (-3.5% TBR, -15% AF), plus hidden <code>heldout_combined_jitter</code>.
+          </div>
+        </div>
+      </details>
 
       <!-- INTERACTIVE LAB 5: Live ARC 505.6 MWf Economics & Trade-Off Explorer -->
       <div class="lab-box">
@@ -1001,22 +986,27 @@
         </table>
       </div>
 
-      <div class="grid-2" style="margin-block-start:1.25rem;">
-        <div class="card">
-          <h3>Empirical Caveats From Phase 3–4</h3>
-          <ul style="margin:0.4rem 0 0; padding-inline-start:1.2rem; font-size:0.9rem; color:var(--ink-muted);">
-            <li><strong>Shared-GPU XLA Lock Contention:</strong> Sharing one GPU across 3 concurrent swarms under a 60-min wall limit stalled peers during 200–500 s XLA compiles. Moving to dedicated GPUs (<code>--gres=gpu:3</code>) eliminates this cleanly.</li>
-            <li><strong>Small Per-Gen Sample Size:</strong> 2+1 swarms/gen showed strong pass-rate lifts (0/3 → 3/3 on Tier 3, 6/6 on Tier 2) but carries variance (higher chatter in Tier 3 Gen-2 lessons yielded conservative step counts vs. control). Larger populations (4+2) will tighten statistical bounds.</li>
-          </ul>
+      <details class="primer-details" style="margin-block-start:1rem;">
+        <summary>Empirical Caveats &amp; ORNL / INL Collaboration Next Steps</summary>
+        <div class="glossary-grid">
+          <div class="glossary-item">
+            <strong>Dedicated GPUs per Swarm</strong>
+            Allocating 1 GPU/swarm (<code>--gres=gpu:3</code>) removes the 200–500 s shared-GPU XLA compile stalls observed in Phase 3.
+          </div>
+          <div class="glossary-item">
+            <strong>Larger Populations (4+2)</strong>
+            2+1 swarms/gen proved gate lifts (0/3 → 3/3 on Tier 3) but carries variance; 4+2 populations tighten statistical bounds.
+          </div>
+          <div class="glossary-item">
+            <strong>Multi-Loop TRANSFORM &amp; TMAP8</strong>
+            Scaling to coupled steam/sCO₂ power balances (50–150 states) and live Rivanna evolution on INL's 11-subsystem ARC deck.
+          </div>
+          <div class="glossary-item">
+            <strong>Upstream Rumoca Co-Evolution</strong>
+            Continuously re-benchmarking new Rumoca releases and feeding verified GPU patterns back to the Modelica/JAX ecosystem.
+          </div>
         </div>
-        <div class="card">
-          <h3>Next Opportunities for ORNL &amp; Fusion Collaboration</h3>
-          <ul style="margin:0.4rem 0 0; padding-inline-start:1.2rem; font-size:0.9rem; color:var(--ink-muted);">
-            <li><strong>Full-Plant Multi-Loop TRANSFORM Assemblies:</strong> Extending Tier 1–3 refactoring to coupled steam/sCO₂ power conversion balances, pumps, and 50–150 state cascades via multi-team <code>meshswarm --teams</code>.</li>
-            <li><strong>Upstream Compiler Co-Evolution:</strong> Continuously benchmarking new Rumoca releases against our Tier 1–3 suite while feeding verified GPU refactoring patterns back to the Modelica/JAX community.</li>
-          </ul>
-        </div>
-      </div>
+      </details>
     </section>
   </main>
 

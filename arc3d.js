@@ -12,27 +12,27 @@ import * as THREE from "./vendor/three.module.min.js";
 export const ARC_SUBSYSTEM_INFO = {
   blanket: {
     vars: "T_01_BZ · T_03_FW · T_04_DIV",
-    title: "ARC Compact High-Field Tokamak & FLiBe Liquid Immersion Blanket",
-    plain: "Unlike solid-wall blankets, MIT/CFS ARC surrounds a compact 505.6 MWf pulsed plasma with demountable REBCO magnets and a single liquid FLiBe molten-salt immersion tank that absorbs neutrons and breeds tritium.",
-    physics: "Pulsed 1,800 s cycle (AF burn + dwell), FLiBe residence time τ_BB ∈ [900, 14400] s, TBR ∈ [1.02, 1.18].",
+    title: "ARC Compact Tokamak & FLiBe Immersion Blanket",
+    plain: "Demountable REBCO magnets surround a 505.6 MWf pulsed plasma inside a single liquid FLiBe immersion tank.",
+    physics: "1,800 s burn/dwell cycle · τ_BB ∈ [900, 14400] s · TBR ∈ [1.02, 1.18].",
   },
   tes_hx: {
     vars: "T_02_TES · T_05_HX · T_11_membrane",
-    title: "Tritium Extraction (TES), Primary Heat Exchanger (HX) & Membrane",
-    plain: "TES strips bred tritium gas out of hot FLiBe salt before the salt reaches the Primary Heat Exchanger. Any tritium left behind can permeate into the steam turbine loop—so DOE caps T_05_HX strictly at 100 mg.",
-    physics: "INL baseline hits 310 mg nominally & 537 mg under TES fouling (VETO). Higher η₂ + shorter τ_HX protect the 100 mg steam barrier.",
+    title: "Tritium Extraction (TES) & Primary HX (100 mg Cap)",
+    plain: "TES strips tritium from FLiBe before the Primary HX so steam-loop permeation stays ≤ 100 mg.",
+    physics: "INL baseline hits 310–537 mg (VETO); higher η₂ + shorter τ_HX clear the cap.",
   },
   exhaust: {
     vars: "T_07_vacuum · T_08_FCU · T_09_ISS · T_06_DS",
-    title: "Divertor Cryopumps (DIR), Fuel Clean-Up, Cryo ISS & Detritiation",
-    plain: "Because only ~2.5–3.8% of injected fuel burns per pass, cryopumps recycle most unburned D-T directly back to storage (Direct Internal Recycling, f_DIR) while routing exhaust impurities through FCU, cryogenic ISS, and DS scrubbers.",
-    physics: "Active non-storage vulnerable tritium across all 10 process units is capped at 220 g (INL baseline peaks at 463 g).",
+    title: "Cryopumps (DIR), Fuel Clean-Up, ISS & Detritiation",
+    plain: "Recycles unburned D-T directly to storage (f_DIR) while purifying exhaust impurities.",
+    physics: "Total active in-process tritium capped at ≤ 220 g (INL baseline: 463 g).",
   },
   storage: {
-    vars: "T_10_storage (Reserve Vault)",
-    title: "Tritium Storage Vault & 24-Hour Outage Reserve Autonomy",
-    plain: "The plant's fuel bank. Startup tritium is scarce (~$30M/kg), so I₀ is capped at ≤ 1.00 kg—yet T_10 must never dip below the 24-hour outage reserve floor during 3 years of pulsing or 20% burn-efficiency drops, and must double within 1.5 years.",
-    physics: "INL baseline starts at 1.14 kg (> 1.00 kg cap) and still dips below reserve during tbe_drop; GPU JAX twins balance I₀ cleanly inside the feasible corridor.",
+    vars: "T_10_storage",
+    title: "Tritium Storage Vault & 24h Outage Reserve",
+    plain: "Startup tritium is capped at ≤ 1.00 kg ($30M/kg), must stay above 24h reserve, and double in ≤ 1.5 yr.",
+    physics: "INL baseline starts at 1.14 kg (VETO) yet still breaches reserve under tbe_drop.",
   },
 };
 
