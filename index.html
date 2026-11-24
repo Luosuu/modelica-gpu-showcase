@@ -110,17 +110,33 @@
       <div class="arch-stage" id="plant-arch-stage">
         <div class="arch-toolbar">
           <div>
-            <div class="eyebrow" style="margin:0;">Interactive Architecture · Click Any Subsystem</div>
+            <div class="eyebrow" style="margin:0;">Interactive 3D / 2D Architecture · Drag to Orbit · Click Any Subsystem</div>
             <h3 style="margin:0.15rem 0 0; font-size:1rem;">Animated Fusion Pilot Plant &amp; Differentiable Signal Flow</h3>
           </div>
           <div class="btn-group">
-            <button type="button" class="seg-btn" id="plant-mode-fwd" aria-pressed="true">Forward Physics Flow</button>
-            <button type="button" class="seg-btn" id="plant-mode-grad" aria-pressed="false">Backward Adjoint Gradients (jax.grad)</button>
+            <button type="button" class="seg-btn" id="plant-view-3d" aria-pressed="true">3D Plant</button>
+            <button type="button" class="seg-btn" id="plant-view-2d" aria-pressed="false">2D Schematic</button>
+            <button type="button" class="seg-btn" id="plant-mode-fwd" aria-pressed="true">Forward Physics</button>
+            <button type="button" class="seg-btn" id="plant-mode-grad" aria-pressed="false">Backward jax.grad</button>
             <button type="button" class="icon-btn" id="plant-pause-btn">Pause</button>
           </div>
         </div>
 
-        <div class="svg-frame">
+        <div class="scene3d-shell" id="plant3d-shell">
+          <div class="plant3d-viewport" id="plant3d-viewport">
+            <div class="plant3d-hud-top" role="group" aria-label="3D camera views">
+              <button type="button" class="cam-pill" data-cam="full" aria-pressed="true">Full Plant</button>
+              <button type="button" class="cam-pill" data-cam="core" aria-pressed="false">Tokamak Core</button>
+              <button type="button" class="cam-pill" data-cam="tier1" aria-pressed="false">Check Valve (T1)</button>
+              <button type="button" class="cam-pill" data-cam="tier2" aria-pressed="false">TRANSFORM HX (T2)</button>
+              <button type="button" class="cam-pill" data-cam="tier3" aria-pressed="false">16-Stage Cryo (T3)</button>
+            </div>
+            <div class="plant3d-labels"></div>
+            <div class="plant3d-hud-hint">Drag to orbit 360° · Scroll to zoom · Click any subsystem</div>
+          </div>
+        </div>
+
+        <div class="svg-frame" id="plant2d-frame" hidden>
           <svg id="plant-svg" viewBox="0 0 960 350" role="img" aria-label="Interactive animated fusion pilot plant architecture showing plasma core, PbLi blanket check valve, ORNL TRANSFORM heat exchanger, FLiBe power turbine, and 16-stage cryogenic tritium distillation tower">
             <defs>
               <radialGradient id="plasmaGrad" cx="50%" cy="50%" r="50%">

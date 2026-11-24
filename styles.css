@@ -1149,3 +1149,107 @@ footer {
   transform: scale(1.3);
 }
 
+/* ---------- 3D Interactive Fusion Plant WebGL Stage ---------- */
+.scene3d-shell {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 460px;
+}
+
+.plant3d-viewport {
+  position: relative;
+  inline-size: 100%;
+  block-size: clamp(360px, 48vw, 465px);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: grab;
+  touch-action: none;
+}
+.plant3d-viewport:active {
+  cursor: grabbing;
+}
+
+.plant3d-canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.plant3d-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.p3d-pin {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  padding: 0.24rem 0.58rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.p3d-pin:hover, .p3d-pin.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.plant3d-hud-top {
+  position: absolute;
+  inset-block-start: 0.7rem;
+  inset-inline-start: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  z-index: 4;
+}
+
+.plant3d-hud-hint {
+  position: absolute;
+  inset-block-end: 0.65rem;
+  inset-inline-end: 0.75rem;
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.71rem;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.cam-pill {
+  padding: 0.26rem 0.62rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.cam-pill:hover { border-color: var(--accent); }
+.cam-pill[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+

@@ -107,6 +107,9 @@
     document.querySelectorAll("#plant-svg [data-plant-node]").forEach((g) => {
       g.classList.toggle("is-selected", g.dataset.plantNode === id);
     });
+    if (typeof plant3dCtrl !== "undefined" && plant3dCtrl) {
+      plant3dCtrl.setSelectedStage(id);
+    }
     document.getElementById("stage-eyebrow").textContent = stage.step;
     document.getElementById("stage-eyebrow").style.color = stage.color;
     document.getElementById("stage-title").textContent = `${stage.title} — ${stage.subtitle}`;
@@ -208,11 +211,79 @@
     plantPaused = paused;
     plantStageEl.classList.toggle("is-paused", paused);
     plantPauseBtn.textContent = paused ? "Play" : "Pause";
+    if (plant3dCtrl) plant3dCtrl.setPaused(paused);
   }
+
+  let plant3dCtrl = null;
+  const plant3dShell = document.getElementById("plant3d-shell");
+  const plant2dFrame = document.getElementById("plant2d-frame");
+  const plantView3dBtn = document.getElementById("plant-view-3d");
+  const plantView2dBtn = document.getElementById("plant-view-2d");
+  const camButtons = Array.from(document.querySelectorAll(".cam-pill[data-cam]"));
+
+  function setPlantView(view) {
+    const is3d = view === "3d" && !!plant3dCtrl;
+    plantView3dBtn.setAttribute("aria-pressed", String(is3d));
+    plantView2dBtn.setAttribute("aria-pressed", String(!is3d));
+    plant3dShell.hidden = !is3d;
+    plant2dFrame.hidden = is3d;
+    if (is3d && plant3dCtrl) plant3dCtrl.resize();
+  }
+
+  function highlightCamBtn(camKey) {
+    camButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cam === camKey)));
+  }
+
+  camButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const k = btn.dataset.cam;
+      highlightCamBtn(k);
+      if (plant3dCtrl) plant3dCtrl.flyToPreset(k);
+      if (k !== "full") renderPlantStage(k);
+    });
+  });
+
+  plantView3dBtn.addEventListener("click", () => setPlantView("3d"));
+  plantView2dBtn.addEventListener("click", () => setPlantView("2d"));
+
+  // Dynamically load modular Three.js 3D Fusion Plant scene; fall back cleanly to 2D SVG if WebGL unavailable
+  import("./plant3d.js")
+    .then(({ initPlant3D }) => {
+      plant3dCtrl = initPlant3D({
+        container: document.getElementById("plant3d-viewport"),
+        onSelectStage: (id) => {
+          renderPlantStage(id);
+          highlightCamBtn(id);
+        },
+        getTheme: getRenderedScheme,
+        isInitiallyPaused: plantPaused,
+      });
+      if (!plant3dCtrl) {
+        plantView3dBtn.disabled = true;
+        setPlantView("2d");
+      } else {
+        plant3dCtrl.setSelectedStage(activeStageId);
+        plant3dCtrl.setFlowMode(plantMode);
+      }
+    })
+    .catch((err) => {
+      console.warn("3D module load failed, using 2D schematic:", err);
+      plantView3dBtn.disabled = true;
+      setPlantView("2d");
+    });
+
   setPlantPaused(plantPaused);
 
-  plantModeFwdBtn.addEventListener("click", () => { plantMode = "fwd"; updatePlantModeUI(); });
-  plantModeGradBtn.addEventListener("click", () => { plantMode = "grad"; updatePlantModeUI(); });
+  plantModeFwdBtn.addEventListener("click", () => {
+    plantMode = "fwd";
+    updatePlantModeUI();
+    if (plant3dCtrl) plant3dCtrl.setFlowMode("fwd");
+  });
+  plantModeGradBtn.addEventListener("click", () => {
+    plantMode = "grad";
+    updatePlantModeUI();
+    if (plant3dCtrl) plant3dCtrl.setFlowMode("grad");
+  });
   plantPauseBtn.addEventListener("click", () => setPlantPaused(!plantPaused));
 
   let lastPlantTs = 0;
@@ -1359,5 +1430,6 @@
     renderPlantSim();
     drawRlChart();
     applyPipeStep();
+    if (plant3dCtrl) plant3dCtrl.applyTheme(getRenderedScheme());
   }
 })();
