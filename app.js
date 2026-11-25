@@ -1397,7 +1397,13 @@
       name: "Conservative Hand-Tuned Safe Reference",
       design: { initial_inventory: 0.86, resident_time_BB: 7200, resident_time_TES: 54000, eta_2: 0.945, resident_time_HX: 380, resident_time_DS: 6500, resident_time_vacuum: 620, f_DIR: 0.62, resident_time_FCU: 560, resident_time_ISS: 8200, f_ISS_to_DS: 0.11, resident_time_membrane: 180, TBR_value: 1.074, AF_value: 0.79, eta_f: 0.29 },
       veto: null,
-      verifiedNote: "VERIFIED PASS (4.45 / 10 across all 5 untouched INL C++ scenarios · 47.2 s CPU grade): Cuts active tritium to 164.1 g (−64.5%) and HX to 17.0 mg (−94.5%) with 0.71 yr doubling, leaving +11.3 MWe of levelized economic headroom that the GPU JAX twin recovers."
+      verifiedNote: "VERIFIED PASS (4.45 / 10 across all 5 untouched INL C++ scenarios · 47.2 s CPU grade): Cuts active tritium to 164.1 g (−64.5%) and HX to 17.0 mg (−94.5%) with 0.71 yr doubling—surpassed autonomously by meshevolve Gen-6 (4.51 / 10)."
+    },
+    swarm6: {
+      name: "Autonomous meshevolve Gen-6 Champion ($0.47 · Beats Human Baseline)",
+      design: { initial_inventory: 0.8252, resident_time_BB: 12632.63, resident_time_TES: 117068.84, eta_2: 0.9570, resident_time_HX: 333.09, resident_time_DS: 2766.09, resident_time_vacuum: 510.72, f_DIR: 0.7707, resident_time_FCU: 1911.91, resident_time_ISS: 2917.65, f_ISS_to_DS: 0.1604, resident_time_membrane: 884.74, TBR_value: 1.0871, AF_value: 0.8583, eta_f: 0.3124 },
+      veto: null,
+      verifiedNote: "VERIFIED CHAMPION (4.51 / 10 across all 5 untouched INL C++ scenarios · $0.47 LLM spend · 7/7 unguided controls = 0.0): Unlocked by Gen-5's 'Break the write monopoly' protocol + penalized L-BFGS-B. Beats human baseline (4.45/10) with lowest startup tritium (0.825 kg, −27.6% vs INL), lowest HX permeation (12.63 mg nominal / 77.07 mg fouling / 41.05 mg hidden jitter, −95.9%), 163.3 g active T, and 0.516 yr doubling (2.73× faster). Autonomously slowed FLiBe blanket flow (4,500 → 12,633 s) to save 2.02 MWe MHD pumping!"
     },
     jax: {
       name: "GPU JAX Backward-Euler Twin (115,456 trajs in 24.4 s)",
@@ -1573,6 +1579,7 @@
     ["corner", "arc-preset-corner"],
     ["swarm", "arc-preset-swarm"],
     ["safe", "arc-preset-safe"],
+    ["swarm6", "arc-preset-swarm6"],
     ["jax", "arc-preset-jax"],
   ];
 
