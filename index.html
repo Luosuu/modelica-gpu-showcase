@@ -831,10 +831,10 @@
 
     <!-- ==================== SECTION 6: DOE INL TMAP8 ARC-CLASS EXTENSION ==================== -->
     <section class="section" id="tmap8" data-slide="6. DOE INL TMAP8 ARC">
-      <div class="eyebrow">06 · Phase 5 Verified on NVIDIA A40 (17 Swarms · 6 Generations · $3.92 Total)</div>
+      <div class="eyebrow">06 · Phase 5 Verified on NVIDIA A40 &amp; RTX 3090 (23 Swarms · 8 Generations · $5.33 Total)</div>
       <h2>Beyond Modelica: DOE INL <code>TMAP8</code> / MOOSE ARC-Class Plant (505.6 MWf)</h2>
       <p class="lead">
-        GPU Backward-Euler twin evaluates <strong>115,456</strong> 3-year pulsed trajectories in <strong>24.4 s</strong> (<strong>~156,000×</strong> vs. 44.1 CPU days), reaching <strong>8.22/10</strong> on untouched INL C++—while 6-gen swarm evolution beats our human expert baseline at <strong>4.51/10</strong> (<code>0.825 kg</code> I₀, <code>12.6 mg</code> HX) as <strong>7/7 unguided controls score 0.0</strong>.
+        GPU Backward-Euler twin evaluates <strong>115,456</strong> 3-year pulsed trajectories in <strong>24.4 s</strong> (<strong>~156,000×</strong> vs. 44.1 CPU days, <strong>8.22/10</strong>)—while 8-gen swarm evolution climbs <code>0.0 → 2.71 → 4.51 →</code> <strong>6.95/10</strong> for <strong>$0.25</strong> (<code>108.1 MWe</code> net, record-low <code>0.790 kg</code> I₀) as <strong>9/9 unguided controls score 0.0</strong>.
       </p>
 
       <!-- 3D INTERACTIVE DOE INL TMAP8 ARC 11-SUBSYSTEM PLANT -->
@@ -868,13 +868,13 @@
 
       <div class="hero-pills" style="margin-block:0.85rem;">
         <span class="pill pill-green">GPU Twin: 8.22/10 · 96.7 MWe · 14.5 mg HX</span>
-        <span class="pill pill-green">Swarm Gen-6: 4.51/10 (Beats Human · 0.825 kg I₀ · 12.6 mg HX)</span>
+        <span class="pill pill-green">Swarm Gen-8 GPU: 6.95/10 ($0.25 · 108.1 MWe · 0.790 kg I₀)</span>
         <span class="pill pill-blue">~156,000× Speedup (24.4 s vs 44.1 d CPU)</span>
-        <span class="pill pill-plasma">7/7 Unguided Controls = 0.0 · INL Baseline: 14 Vetoes</span>
+        <span class="pill pill-plasma">9/9 Unguided Controls = 0.0 · INL Baseline: 14 Vetoes</span>
       </div>
 
       <details class="primer-details" style="margin-block:0 1rem;">
-        <summary>Full DOE INL TMAP8 Oracle, 5 Scenarios &amp; 6-Gen Evolutionary Lineage ($3.92)</summary>
+        <summary>Full DOE INL TMAP8 Oracle, 5 Scenarios &amp; 8-Gen Evolutionary Staircase ($5.33)</summary>
         <div class="glossary-grid">
           <div class="glossary-item">
             <strong>Untouched MOOSE Oracle</strong>
@@ -885,12 +885,12 @@
             <code>nominal</code>, <code>tbe_drop</code> (−20%), <code>tes_fouling</code> (−18% η₂, 3× HX slip), <code>blanket_degraded</code> (−3.5% TBR, −15% AF), plus hidden <code>heldout_combined_jitter</code>.
           </div>
           <div class="glossary-item">
-            <strong>Organizational Breakthrough ("Break the Write Monopoly")</strong>
-            All 7 uninstructed swarms scored <strong>0.0</strong>. Gen-1 Reviewer's early-write rule unlocked Gen-2 (<code>2.71/10</code>, $0.23); per-workspace locking lifted throughput <strong>&gt;5×</strong>; Gen-5 Reviewer coined <em>"whoever holds a passing candidate writes immediately"</em>, unlocking Gen-6 (<code>4.51/10</code>, $0.47).
+            <strong>8-Gen Staircase (0.0 → 2.71 → 4.51 → 6.95)</strong>
+            All 9/9 unguided swarms scored <strong>0.0</strong>. Gen-1 early-write unlocked Gen-2 (<code>2.71</code>, $0.23); Gen-5 <em>"Break the write monopoly"</em> unlocked CPU Gen-6 (<code>4.51</code>, beating human <code>4.45</code>); Gen-7's <em>"promote every check + coarse seed probe"</em> unlocked RTX 3090 Gen-8 (<strong>6.95/10</strong> for <strong>$0.25</strong>, closing 65% of the remaining gap).
           </div>
           <div class="glossary-item">
-            <strong>Autonomous Physics Discovery (Gen-6)</strong>
-            Slowing FLiBe blanket circulation nearly 3× (<code>4,500 → 12,633 s</code>) saved <strong>2.02 MWe</strong> of MHD pumping power at negligible inventory cost, funding 95.7% TES extraction, fast ISS (2,918 s), and 77.1% DIR—cutting doubling time <strong>2.73×</strong> to <code>0.516 yr</code>.
+            <strong>Gen-8 Boundary Packing &amp; 0.790 kg Record I₀</strong>
+            Lowest startup tritium of any passing design (<code>0.790 kg</code>, −30.7% vs INL, 99 g below GPU ref), packs <code>tbe_drop</code> active T to <code>219.95 ≤ 220.0 g</code> &amp; fouling HX to <code>93.88 ≤ 100 mg</code>, and slashes tritium-plant load to <strong>7.39 MWe</strong> via <code>f_DIR = 0.88</code> + slow blanket flow (<code>11,113 s</code>).
           </div>
         </div>
       </details>
@@ -905,10 +905,11 @@
           <div class="btn-group" role="group" aria-label="TMAP8 ARC design presets">
             <button type="button" class="seg-btn" id="arc-preset-inl" aria-pressed="false">INL Baseline (VETO 0.0)</button>
             <button type="button" class="seg-btn" id="arc-preset-corner" aria-pressed="false">Naive Corner (VETO 0.0)</button>
-            <button type="button" class="seg-btn" id="arc-preset-swarm" aria-pressed="false">Swarm Gen-2 (2.71/10)</button>
-            <button type="button" class="seg-btn" id="arc-preset-safe" aria-pressed="false">Human Ref (4.45/10)</button>
-            <button type="button" class="seg-btn" id="arc-preset-swarm6" aria-pressed="false">Swarm Gen-6 (4.51/10 ★)</button>
-            <button type="button" class="seg-btn" id="arc-preset-jax" aria-pressed="true">GPU JAX Twin (8.22/10)</button>
+            <button type="button" class="seg-btn" id="arc-preset-swarm" aria-pressed="false">Gen-2 (2.71)</button>
+            <button type="button" class="seg-btn" id="arc-preset-safe" aria-pressed="false">Human (4.45)</button>
+            <button type="button" class="seg-btn" id="arc-preset-swarm6" aria-pressed="false">Gen-6 CPU (4.51)</button>
+            <button type="button" class="seg-btn" id="arc-preset-swarm8" aria-pressed="false">Gen-8 GPU (6.95 ★)</button>
+            <button type="button" class="seg-btn" id="arc-preset-jax" aria-pressed="true">GPU Ref (8.22)</button>
           </div>
         </div>
 
@@ -989,8 +990,8 @@
             </tr>
             <tr>
               <th scope="row">Phase 5</th>
-              <td data-label="Deliverables">DOE INL <code>TMAP8</code> / MOOSE ARC 505.6 MWf 15-param benchmark, 5-scenario C++ oracle, GPU twin &amp; 6-gen swarm campaign</td>
-              <td data-label="Verified Outcome">A40 verified (17 swarms, $3.92): GPU twin 115,456 trajs in 24.4 s (~156,000×), 8.22/10; Gen-6 swarm beats human baseline at 4.51/10 (0.825 kg I₀, 12.6 mg HX); 7/7 controls = 0.0</td>
+              <td data-label="Deliverables">DOE INL <code>TMAP8</code> / MOOSE ARC 505.6 MWf 15-param benchmark, 5-scenario C++ oracle, GPU twin &amp; 8-gen swarm campaign</td>
+              <td data-label="Verified Outcome">A40 &amp; RTX 3090 verified (23 swarms, $5.33): GPU twin 115,456 trajs in 24.4 s (~156,000×), 8.22/10; Gen-8 GPU swarm hits 6.95/10 ($0.25, 108.1 MWe, record-low 0.790 kg I₀); 9/9 controls = 0.0</td>
               <td data-label="Status"><span class="tag pass">Done</span></td>
             </tr>
           </tbody>
@@ -1029,7 +1030,7 @@
 
   <footer>
     <span><strong>Modelica-to-GPU Research Showcase</strong> · <code>meshswarm</code> &amp; <code>meshevolve</code></span>
-    <span>All metrics verified on UVA Rivanna GPUs (Jobs 23373343–23430931 · ORNL TRANSFORM &amp; DOE INL TMAP8)</span>
+    <span>All metrics verified on UVA Rivanna GPUs (Jobs 23373343–23438944 · ORNL TRANSFORM &amp; DOE INL TMAP8)</span>
   </footer>
 
   <script src="data.js"></script>

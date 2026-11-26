@@ -1400,10 +1400,16 @@
       verifiedNote: "VERIFIED PASS (4.45 / 10 across all 5 untouched INL C++ scenarios · 47.2 s CPU grade): Cuts active tritium to 164.1 g (−64.5%) and HX to 17.0 mg (−94.5%) with 0.71 yr doubling—surpassed autonomously by meshevolve Gen-6 (4.51 / 10)."
     },
     swarm6: {
-      name: "Autonomous meshevolve Gen-6 Champion ($0.47 · Beats Human Baseline)",
+      name: "Autonomous meshevolve Gen-6 CPU Champion ($0.47 · Beats Human Baseline)",
       design: { initial_inventory: 0.8252, resident_time_BB: 12632.63, resident_time_TES: 117068.84, eta_2: 0.9570, resident_time_HX: 333.09, resident_time_DS: 2766.09, resident_time_vacuum: 510.72, f_DIR: 0.7707, resident_time_FCU: 1911.91, resident_time_ISS: 2917.65, f_ISS_to_DS: 0.1604, resident_time_membrane: 884.74, TBR_value: 1.0871, AF_value: 0.8583, eta_f: 0.3124 },
       veto: null,
-      verifiedNote: "VERIFIED CHAMPION (4.51 / 10 across all 5 untouched INL C++ scenarios · $0.47 LLM spend · 7/7 unguided controls = 0.0): Unlocked by Gen-5's 'Break the write monopoly' protocol + penalized L-BFGS-B. Beats human baseline (4.45/10) with lowest startup tritium (0.825 kg, −27.6% vs INL), lowest HX permeation (12.63 mg nominal / 77.07 mg fouling / 41.05 mg hidden jitter, −95.9%), 163.3 g active T, and 0.516 yr doubling (2.73× faster). Autonomously slowed FLiBe blanket flow (4,500 → 12,633 s) to save 2.02 MWe MHD pumping!"
+      verifiedNote: "VERIFIED CPU CHAMPION (4.51 / 10 across all 5 untouched INL C++ scenarios · $0.47): Unlocked by Gen-5's 'Break the write monopoly' rule. Beats human baseline (4.45/10) with lowest HX permeation (12.63 mg nominal / 77.07 mg fouling / 41.05 mg hidden jitter, −95.9%), 163.3 g active T, and fastest 0.516 yr doubling (2.73× faster)."
+    },
+    swarm8: {
+      name: "Autonomous meshevolve Gen-8 GPU Champion ($0.25 · RTX 3090)",
+      design: { initial_inventory: 0.79, resident_time_BB: 11113.0, resident_time_TES: 99155.0, eta_2: 0.94, resident_time_HX: 390.0, resident_time_DS: 4479.0, resident_time_vacuum: 1003.0, f_DIR: 0.88, resident_time_FCU: 1800.0, resident_time_ISS: 19971.0, f_ISS_to_DS: 0.128, resident_time_membrane: 200.0, TBR_value: 1.07, AF_value: 0.837, eta_f: 0.331 },
+      veto: null,
+      verifiedNote: "VERIFIED GPU CHAMPION (6.95 / 10 across all 5 untouched INL C++ scenarios · $0.25 LLM spend · 9/9 unguided controls = 0.0): Calibrated its GPU twin in ~3 min, launched 1 scoped sub-agent seed probe + 2 clean handovers, and promoted twice to hit 108.1 MWe net / 92.84 MWe J_econ (closing 65% of the remaining gap to the 64-start GPU ref). Achieves the lowest startup tritium of ANY passing design (0.790 kg, −30.7% vs INL, 99 g below GPU ref), packs tbe_drop active T to 219.95 ≤ 220.0 g & fouling HX to 93.88 ≤ 100 mg, clears unseen jitter (200.9 g / 52.1 mg), and cuts tritium-plant parasitic load to 7.39 MWe!"
     },
     jax: {
       name: "GPU JAX Backward-Euler Twin (115,456 trajs in 24.4 s)",
@@ -1580,6 +1586,7 @@
     ["swarm", "arc-preset-swarm"],
     ["safe", "arc-preset-safe"],
     ["swarm6", "arc-preset-swarm6"],
+    ["swarm8", "arc-preset-swarm8"],
     ["jax", "arc-preset-jax"],
   ];
 
